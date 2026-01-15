@@ -2,7 +2,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class ServerMain {
-
     public static void main(String[] args) {
 
         int port = 1500;
@@ -17,7 +16,7 @@ public class ServerMain {
                 Socket sock = serverSocket.accept();
                 System.out.println("Forbindelse oprettet, starter spil");
 
-                Thread t = new Thread(() -> {
+                Thread thread = new Thread(() -> {
                     try {
                         GameSession session = new GameSession(sock);
                         session.run();
@@ -30,7 +29,7 @@ public class ServerMain {
                     }
                 });
 
-                t.start();
+                thread.start();
             }
 
         } catch (Exception e) {
