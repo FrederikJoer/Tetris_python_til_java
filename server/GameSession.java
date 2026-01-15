@@ -73,7 +73,6 @@ public class GameSession {
 
     }
 
-
     public String fromClient() {
         String fromclient = netin.nextLine();
         System.out.println("from client: " + fromclient);
@@ -86,4 +85,3 @@ public class GameSession {
         netout.flush();
     }
 }
-

@@ -17,7 +17,6 @@ public class ClientMain {
             scanner = new Scanner(System.in);
             netin = new Scanner(sock.getInputStream());
             netout = new PrintWriter(sock.getOutputStream());  
-                 
       
             //Recieve first lines from server
             String textline = netin.nextLine();
@@ -60,7 +59,6 @@ public class ClientMain {
                 System.out.println(textline);
             }
             
-          
         } catch (Exception e) {
             System.err.println("Error when communcating with server: " + e.getMessage());
         } finally {
