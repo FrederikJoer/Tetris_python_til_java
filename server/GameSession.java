@@ -13,9 +13,16 @@ public class GameSession {
     private Boolean chooseName = false;
     private Boolean startGame = false;
 
-    private String lastInput = null;
+    public String lastInput = null;
     public String playerName = "";
     public String start = "";
+
+    // FIX: boardLock skal være et felt, ellers findes det ikke i run()
+    private final Object boardLock = new Object(); // FIX
+
+    // FIX: board skal være et felt, ellers kan lambda ikke ændre det
+    private String[] board = null; // FIX
+
 
     public GameSession(Socket sock) { // constructer
         this.sock = sock;
@@ -29,9 +36,6 @@ public class GameSession {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
-        //this.variable = new "anden_klasse"(); - I GameSession klassen private "klasse" variable; 
     }
 
     public void run() {
@@ -39,10 +43,10 @@ public class GameSession {
         toClient("WELCOME TO TETRIS");
 
         chooseName = true;
-        while(chooseName) {
+        while (chooseName) {
             toClient("CHOOSE A NAME");
             playerName = fromClient();
-            
+
             if (playerName.isEmpty()) {
                 toClient(protocol.wrongName());
             } else {
@@ -51,7 +55,7 @@ public class GameSession {
             }
         }
 
-        while(startGame) {
+        while (startGame) {
             toClient("WRITE START TO START");
 
             start = fromClient();
@@ -64,20 +68,30 @@ public class GameSession {
             }
         }
 
-
-        String[] board = gameBoard.makeBoard();
+    
+        board = gameBoard.makeBoard();
         System.out.println(board);
-        while(activeGame) {
-            toClient("BOARD IS " + String.join("", board));
-            startInputThread();
-            System.out.println("Loopet kører og venter");
 
+        startInputThread();
 
-            if (lastInput != null) {
-                System.out.println("Game loop fik input: " + lastInput);
-                lastInput = null;
+        Thread movement = new Thread(() -> {
+            while (activeGame) {
+                String gameStatus = ""; // Måske en klasse som holder styr på gamestatus og score
+                String score = "";      // det samme som ovenfor
+
+                synchronized (boardLock) {
+                   //Her skal der kontaktes updateboardmovement i board
+                }
+
+                //Her skal der sendes beskeder til client
+
+                try {
+                    Thread.sleep(50); // opdatere hvert 0.05 seukund
+                } catch (Exception e) {}
             }
-        }
+        }); 
+
+        movement.start(); //Threaden bliver startet
 
     }
 
@@ -93,14 +107,11 @@ public class GameSession {
         netout.flush();
     }
 
-
     public void startInputThread() {
-    new Thread(() -> {
-        while (true) {
-            lastInput = fromClient(); // BLOKERER her – og det er HELT OK
-        }
-    }).start();
+        new Thread(() -> {
+            while (true) {
+                lastInput = fromClient();
+            }
+        }).start();
+    }
 }
-
-}
-
