@@ -1,6 +1,42 @@
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class ServerMain {
 
     public static void main(String[] args) {
+
+        int port = 1500;
+
+        try {
+            ServerSocket serverSocket = new ServerSocket(port);
+            System.out.println("Serveren er startet og lytter på port " + port);
+
+            while (true) {
+                System.out.println("Venter på ny forbindelse...");
+
+                Socket sock = serverSocket.accept();
+                System.out.println("Forbindelse oprettet, starter spil");
+
+                // ÆNDRING: Kør hver GameSession i sin egen thread (tråd)
+                Thread t = new Thread(() -> {
+                    try {
+                        GameSession session = new GameSession(sock);
+                        session.run(); // Kører i DENNE nye tråd
+                    } catch (Exception e) {
+                        System.out.println("Forbindelsen blev afbrudt");
+                    } finally {
+                        try {
+                            sock.close(); // Lukker socket når session slutter
+                        } catch (Exception e) {}
+                    }
+                });
+
+                // ÆNDRING: start() starter tråden (run() alene gør det ikke)
+                t.start();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
