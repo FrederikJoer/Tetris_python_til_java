@@ -17,21 +17,19 @@ public class ServerMain {
                 Socket sock = serverSocket.accept();
                 System.out.println("Forbindelse oprettet, starter spil");
 
-                // ÆNDRING: Kør hver GameSession i sin egen thread (tråd)
                 Thread t = new Thread(() -> {
                     try {
                         GameSession session = new GameSession(sock);
-                        session.run(); // Kører i DENNE nye tråd
+                        session.run();
                     } catch (Exception e) {
                         System.out.println("Forbindelsen blev afbrudt");
                     } finally {
                         try {
-                            sock.close(); // Lukker socket når session slutter
+                            sock.close(); 
                         } catch (Exception e) {}
                     }
                 });
 
-                // ÆNDRING: start() starter tråden (run() alene gør det ikke)
                 t.start();
             }
 
