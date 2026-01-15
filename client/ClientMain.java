@@ -58,6 +58,27 @@ public class ClientMain {
                 textline = netin.nextLine();
                 System.out.println(textline);
             }
+
+            int moveCount = 0;
+            while (moveCount < 10) {
+                // Display move number
+                System.out.println("Move " + (moveCount + 1) + " of 10");
+                System.out.print("Enter your move: ");
+                
+                // Get user input
+                String move = scanner.nextLine();
+                
+                // Send move to server
+                netout.print(move + "\r\n");
+                netout.flush();
+                
+                // Read server response (could be updated board, score, etc.)
+                if (netin.hasNextLine()) {
+                    textline = netin.nextLine();
+                    System.out.println("Server response: " + textline);
+                }
+                moveCount++;
+            }
             
         } catch (Exception e) {
             System.err.println("Error when communcating with server: " + e.getMessage());
