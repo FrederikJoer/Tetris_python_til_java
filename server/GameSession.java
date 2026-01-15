@@ -13,6 +13,7 @@ public class GameSession {
     private Boolean chooseName = false;
     private Boolean startGame = false;
 
+    private String lastInput = null;
     public String playerName = "";
     public String start = "";
 
@@ -68,11 +69,17 @@ public class GameSession {
         System.out.println(board);
         while(activeGame) {
             toClient("BOARD IS " + String.join("", board));
-            activeGame = false;
+            startInputThread();
+            System.out.println("Loopet kører og venter");
+
+
+            if (lastInput != null) {
+                System.out.println("Game loop fik input: " + lastInput);
+                lastInput = null;
+            }
         }
 
     }
-
 
     public String fromClient() {
         String fromclient = netin.nextLine();
@@ -85,5 +92,15 @@ public class GameSession {
         netout.print(msg + "\r\n");
         netout.flush();
     }
+
+
+    public void startInputThread() {
+    new Thread(() -> {
+        while (true) {
+            lastInput = fromClient(); // BLOKERER her – og det er HELT OK
+        }
+    }).start();
+}
+
 }
 
