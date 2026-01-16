@@ -8,14 +8,30 @@ public class GameSession {
     private PrintWriter netout;
     private ProtocolMSG protocol;
     private Board gameBoard;
+    private ActivePiece activePieceMovement;
+    private MaskPiece activeMaskPiece;
 
     private Boolean activeGame = false;
     private Boolean chooseName = false;
     private Boolean startGame = false;
 
-    private String lastInput = null;
+    public String lastInput = null;
     public String playerName = "";
     public String start = "";
+
+    public String pieceType = "";
+    //public int globalBoardX = 0;
+    //public int globalBoardY = 0;
+    //public int localX = 0;
+    //public int localY = 0;
+    public int pieceX = 0;
+    public int pieceY = 0;
+
+    public int startPiecex = 3;
+    public int startPiecey = 0;
+
+    private final Object boardLock = new Object(); // FIX
+    private String[] board = null; // FIX
 
     public GameSession(Socket sock) { // constructer
         this.sock = sock;
@@ -25,13 +41,12 @@ public class GameSession {
             this.netout = new PrintWriter(sock.getOutputStream());
             this.protocol = new ProtocolMSG();
             this.gameBoard = new Board();
+            this.activePieceMovement = new ActivePiece();
+            this.activeMaskPiece = new MaskPiece();
 
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
-        //this.variable = new "anden_klasse"(); - I GameSession klassen private "klasse" variable; 
     }
 
     public void run() {
@@ -39,10 +54,10 @@ public class GameSession {
         toClient("WELCOME TO TETRIS");
 
         chooseName = true;
-        while(chooseName) {
+        while (chooseName) {
             toClient("CHOOSE A NAME");
             playerName = fromClient();
-            
+
             if (playerName.isEmpty()) {
                 toClient(protocol.wrongName());
             } else {
@@ -51,12 +66,12 @@ public class GameSession {
             }
         }
 
-        while(startGame) {
-            toClient("WRITE START TO START");
+        while (startGame) {
+            toClient("WRITE s TO START");
 
             start = fromClient();
 
-            if (start.equals("START")) {
+            if (start.equals("s")) {
                 activeGame = true;
                 startGame = false;
             } else {
@@ -64,21 +79,85 @@ public class GameSession {
             }
         }
 
+        board = gameBoard.makeBoard();
+        pieceX = startPiecex;
+        pieceY = startPiecey;
 
-        String[] board = gameBoard.makeBoard();
         System.out.println(board);
-        while(activeGame) {
-            toClient("BOARD IS " + String.join("", board));
-            startInputThread();
-            System.out.println("Loopet kører og venter");
 
+        startInputThread();
 
-            if (lastInput != null) {
-                System.out.println("Game loop fik input: " + lastInput);
-                lastInput = null;
+        Thread movement = new Thread(() -> {
+            while (activeGame) {
+                String gameStatus = "";
+                String score = "";
+
+                synchronized (boardLock) {
+                    //System.out.println("Er inden i syncronized for movement");
+                }
+
+                try {
+                    Thread.sleep(50);
+                } catch (Exception e) {}
             }
-        }
+        });
 
+        Thread gravity = new Thread(() -> {
+            while (activeGame) {
+
+                synchronized (boardLock) {
+                    pieceType = "LONG";
+
+                    int[][] mask = activeMaskPiece.longMask(0);
+
+                    for (int[] m : mask) {
+                        setCell(pieceX + m[0], pieceY + m[1], ".");
+                    }
+
+                    boolean collision = false;
+                    for (int[] m : mask) {
+                        int gx = pieceX + m[0];
+                        int gy = (pieceY + 1) + m[1];
+
+                        if (gx < 0 || gx >= 10) collision = true;
+                        if (gy < 0 || gy >= 20) collision = true;
+
+                        if (!collision) {
+                            int index = gy * 10 + gx;
+                            if (!board[index].equals(".")) collision = true;
+                        }
+                    }
+
+                    if (!collision) {
+                        pieceY = pieceY + 1;
+                    }
+
+                    for (int[] m : mask) {
+                        setCell(pieceX + m[0], pieceY + m[1], "X");
+                    }
+
+                    toClient("BOARD IS " + String.join("", board));
+                }
+
+                try {
+                    Thread.sleep(500);
+                } catch (Exception e) {}
+            }
+        });
+
+        movement.start();
+        gravity.start();
+    }
+
+    public void setCell(int x, int y, String value) {
+        int WIDTH = 10;
+        int HEIGHT = board.length / WIDTH;
+
+        if (x < 0 || x >= WIDTH) return;
+        if (y < 0 || y >= HEIGHT) return;
+
+        int index = y * WIDTH + x;
+        board[index] = value;
     }
 
     public String fromClient() {
@@ -93,14 +172,15 @@ public class GameSession {
         netout.flush();
     }
 
-
     public void startInputThread() {
-    new Thread(() -> {
-        while (true) {
-            lastInput = fromClient(); // BLOKERER her – og det er HELT OK
-        }
-    }).start();
+        new Thread(() -> {
+            while (activeGame) {
+                try {
+                    lastInput = fromClient();
+                } catch (Exception e) {
+                    break;
+                }
+            }
+        }).start();
+    }
 }
-
-}
-
