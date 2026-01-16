@@ -9,21 +9,23 @@ public class Board{
         return board;
     }
 
-
-    public String[] updateBoardMovement(String board, String input) {
-        return null;
-    }
-
-    public String[] updateBoardGravity(String board) {
-        return null;
-    }
-
-
-    public boolean collisionWall(String board) {
+    public boolean collisionBottom(String[] board, int globalX, int globalY) { //tjekker om en position er inden for globalBoard
+        
+        
+        
         return false;
     }
 
-    public boolean collisionPiece(String board) {
+    public boolean isEmpty(int x, int y) { // tjekker om en plads er ledig eller låst
         return false;
+    }
+
+
+    public char[][] copyLocked() { //Kopiere board efter en kolision som kan bruges til næste activePiece
+        return null;
+    }
+
+    public void clear() { //bruges til at nulstille board til restart game
+
     }
 }
