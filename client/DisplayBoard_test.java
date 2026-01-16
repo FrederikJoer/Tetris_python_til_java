@@ -1,13 +1,13 @@
 import java.awt.*;
-import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
 import javax.swing.*;
 
-public class DisplayBoard extends JFrame {
+public class DisplayBoard_test extends JFrame {
 
     // Simple GUI components
+    private JTextArea boardArea;
     private JTextField highScoreField;
     private JTextField statusField;
     private JPanel boardPanel;
@@ -19,7 +19,7 @@ public class DisplayBoard extends JFrame {
     private PrintWriter netout;
 
     //Constructor. Sets layout
-    public DisplayBoard(Socket sock, Scanner netin, PrintWriter netout) {
+    public DisplayBoard_test(Socket sock, Scanner netin, PrintWriter netout) {
         this.sock = sock;
         this.netout = netout;
         this.netin = netin;
@@ -41,16 +41,17 @@ public class DisplayBoard extends JFrame {
         add(topPanel, BorderLayout.NORTH);
 
         //Create board panel with cells
-        boardPanel = new JPanel(new GridLayout(20, 10, 1, 1));
-        boardPanel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
+        boardPanel = new JPanel(new GridLayout(20,10));
         boardCells = new JLabel[20][10];
 
         //Create the 20 cells and add them to the board panel.
         for (int row=0; row<20;row++) {
-            for (int col=0; col<10; col++) {
-                boardCells[row][col] = new JLabel();
-                boardCells[row][col].setOpaque(true);
-                boardCells[row][col].setBackground(Color.WHITE);
+            for (int col=0; col<20; row++) {
+                boardCells[row][col] = new JLabel(" ");
+                boardCells[row][col].setHorizontalAlignment(SwingConstants.CENTER);
+                boardCells[row][col].setBackground(Color.BLACK);
+                boardCells[row][col].setForeground(Color.WHITE);
+                boardCells[row][col].setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
                 boardPanel.add(boardCells[row][col]);
             }
         }
@@ -59,57 +60,19 @@ public class DisplayBoard extends JFrame {
 
         //Create status panel. Shows winner etc.
         JPanel bottomPanel = new JPanel();
-        statusField = new JTextField("Status: ", 20);
+        statusField = new JTextField("Status: ", 30);
         statusField.setEditable(false);
         bottomPanel.add(statusField, BorderLayout.SOUTH);
         add(bottomPanel, BorderLayout.SOUTH);
 
         // Set size etc.
-        setSize(300, 600);
+        setSize(500, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        //Add key bindings
-        setupKeyBindings();
-    }
-
-    private void setupKeyBindings() {
-        addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                switch (e.getKeyCode()) {
-                    case KeyEvent.VK_LEFT:
-                        sendCommand("LEFT");
-                        break;
-                    case KeyEvent.VK_RIGHT:
-                        sendCommand("RIGHT");
-                        break;
-                    case KeyEvent.VK_UP:
-                        sendCommand("ROTATE");
-                        break;
-                    case KeyEvent.VK_DOWN:
-                        sendCommand("SOFT");
-                        break;
-                }
-            }
-        });
-        
-        // Make sure the frame can receive key events
-        setFocusable(true);
-        requestFocusInWindow();
     }
 
     //Starts the GUI and connects to the server.
-    public void sendCommand(String command) {
-        try {
-            if (netout != null) {
-                netout.println(command);
-            }
-        } catch (Exception e) {
-            System.err.println("Error printing command: " + e.getMessage());
-        }
-    }
-
     public void start() {
         setVisible(true);
         connectToServer();
@@ -120,22 +83,23 @@ public class DisplayBoard extends JFrame {
 
         //Thread for connection, so that it doesnt block GUI.
         Thread connectionThread = new Thread(() -> {
-            try {
-                //Reads two first lines from server. Should contain a welcome message and a name request.
-                String welcome = netin.nextLine();
-                String enterName = netin.nextLine();
+             try {
+            //Reads two first lines from server. Should contain a welcome message and a name request.
+            String welcome = netin.nextLine();
+            String enterName = netin.nextLine();
 
-                System.out.println("DEBUG: Received from server - Welcome: " + welcome);
-                System.out.println("DEBUG: Received from server - EnterName: " + enterName);
+            System.out.println("DEBUG: Received from server - Welcome: " + welcome);
+            System.out.println("DEBUG: Received from server - EnterName: " + enterName);
 
-                //Show the welcome-window.
-                SwingUtilities.invokeLater(() -> showWelcome()); 
+            //Show the welcome-window.
+            SwingUtilities.invokeLater(() -> showWelcome()); 
 
             } catch (Exception e){
                 System.err.println("Error in server-connection: " + e.getMessage());
                 SwingUtilities.invokeLater(() -> 
                     statusField.setText("Connection error: " + e.getMessage()));
             }
+
         });
 
         connectionThread.start(); //Start thread
@@ -239,25 +203,26 @@ public class DisplayBoard extends JFrame {
                 statusField.setText(serverMessage));
         } else {
             System.out.println("DEBUG: Unknown message format");
+            SwingUtilities.invokeLater(() -> 
+                boardArea.setText("ERROR: Unknown message\n" + serverMessage));
         }
     }
 
     private void updateBoard(String serverMessage) {
-        String board = serverMessage.substring(9);
-        System.out.println(board);
+        String board = serverMessage.substring(8);
 
-        for (int i = 0; i < 200; i++) {
-            int row = i / 10;  // Integer division gives row
-            int col = i % 10;  // Modulo gives column 
-            if (row < 20 && col < 10) {
-                char cell = board.charAt(i);
-            
-                if (cell == 'x') {
-                    boardCells[row][col].setBackground(Color.CYAN);
-                } else {
-                    boardCells[row][col].setBackground(Color.WHITE);
+        if (board.length() >= 200) {
+            for (int row = 0; row < 20; row++) {
+                for (int col = 0; col < 10; col++) {
+                    int index = row * 10 + col;
+                    char cell = board.charAt(index);
+                    if (cell == 'x') {
+                        boardCells[row][col].setText("■");
+                    } else {
+                        boardCells[row][col].setText(" ");
+                    }
                 }
             }
         }
-    }
+}
 }
