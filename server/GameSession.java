@@ -6,42 +6,32 @@ public class GameSession {
     private Socket sock;
     private Scanner netin;
     private PrintWriter netout;
-    private ProtocolMSG protocol;
+
     private Board gameBoard;
-    private ActivePiece activePieceMovement;
     private MaskPiece activeMaskPiece;
 
-    private Boolean activeGame = false;
-    private Boolean chooseName = false;
-    private Boolean startGame = false;
+    private boolean activeGame = false;
+    private boolean chooseName = false;
+    private boolean startGame = false;
 
     public String lastInput = null;
     public String playerName = "";
     public String start = "";
 
-    public String pieceType = "";
-    //public int globalBoardX = 0;
-    //public int globalBoardY = 0;
-    //public int localX = 0;
-    //public int localY = 0;
-    public int pieceX = 0;
+    public int pieceX = 3;
     public int pieceY = 0;
 
-    public int startPiecex = 3;
-    public int startPiecey = 0;
+    private final Object boardLock = new Object();
+    private String[] board = null;
 
-    private final Object boardLock = new Object(); // FIX
-    private String[] board = null; // FIX
-
-    public GameSession(Socket sock) { // constructer
+    public GameSession(Socket sock) {
         this.sock = sock;
 
         try {
             this.netin = new Scanner(sock.getInputStream());
-            this.netout = new PrintWriter(sock.getOutputStream());
-            this.protocol = new ProtocolMSG();
+            this.netout = new PrintWriter(sock.getOutputStream()); // ingen autoflush
+
             this.gameBoard = new Board();
-            this.activePieceMovement = new ActivePiece();
             this.activeMaskPiece = new MaskPiece();
 
         } catch (Exception e) {
@@ -51,15 +41,22 @@ public class GameSession {
 
     public void run() {
         System.out.println("GameSession kører for: " + sock);
-        toClient("WELCOME TO TETRIS");
+
+        send("WELCOME TO TETRIS");
 
         chooseName = true;
         while (chooseName) {
-            toClient("CHOOSE A NAME");
-            playerName = fromClient();
+            send("CHOOSE A NAME");
+            playerName = receive();
+
+            if (playerName == null) {
+                // client disconnect
+                closeQuiet();
+                return;
+            }
 
             if (playerName.isEmpty()) {
-                toClient(protocol.wrongName());
+                send("WRONG NAME");
             } else {
                 chooseName = false;
                 startGame = true;
@@ -67,120 +64,125 @@ public class GameSession {
         }
 
         while (startGame) {
-            toClient("WRITE s TO START");
+            send("WRITE START TO START");
+            start = receive();
 
-            start = fromClient();
+            if (start == null) {
+                // client disconnect
+                closeQuiet();
+                return;
+            }
 
-            if (start.equals("s")) {
+            if (start.equals("START")) {
                 activeGame = true;
                 startGame = false;
             } else {
-                toClient(protocol.unknowStart());
+                send("UNKNOWN START");
             }
         }
 
         board = gameBoard.makeBoard();
-        pieceX = startPiecex;
-        pieceY = startPiecey;
 
-        System.out.println(board);
-
+        // Input-thread (læser input under spil)
         startInputThread();
 
-        Thread movement = new Thread(() -> {
-            while (activeGame) {
-                String gameStatus = "";
-                String score = "";
-
-                synchronized (boardLock) {
-                    //System.out.println("Er inden i syncronized for movement");
-                }
-
-                try {
-                    Thread.sleep(50);
-                } catch (Exception e) {}
-            }
-        });
-
-        Thread gravity = new Thread(() -> {
-            while (activeGame) {
-
-                synchronized (boardLock) {
-                    pieceType = "LONG";
-
-                    int[][] mask = activeMaskPiece.longMask(0);
-
-                    for (int[] m : mask) {
-                        setCell(pieceX + m[0], pieceY + m[1], ".");
-                    }
-
-                    boolean collision = false;
-                    for (int[] m : mask) {
-                        int gx = pieceX + m[0];
-                        int gy = (pieceY + 1) + m[1];
-
-                        if (gx < 0 || gx >= 10) collision = true;
-                        if (gy < 0 || gy >= 20) collision = true;
-
-                        if (!collision) {
-                            int index = gy * 10 + gx;
-                            if (!board[index].equals(".")) collision = true;
-                        }
-                    }
-
-                    if (!collision) {
-                        pieceY = pieceY + 1;
-                    }
-
-                    for (int[] m : mask) {
-                        setCell(pieceX + m[0], pieceY + m[1], "X");
-                    }
-
-                    toClient("BOARD IS " + String.join("", board));
-                }
-
-                try {
-                    Thread.sleep(500);
-                } catch (Exception e) {}
-            }
-        });
-
-        movement.start();
-        gravity.start();
+        // Gravity-thread (sender board løbende)
+        startGravityThread();
     }
 
-    public void setCell(int x, int y, String value) {
-        int WIDTH = 10;
-        int HEIGHT = board.length / WIDTH;
-
-        if (x < 0 || x >= WIDTH) return;
-        if (y < 0 || y >= HEIGHT) return;
-
-        int index = y * WIDTH + x;
-        board[index] = value;
-    }
-
-    public String fromClient() {
-        String fromclient = netin.nextLine();
-        System.out.println("from client: " + fromclient);
-        return fromclient;
-    }
-
-    public void toClient(String msg) {
-        System.out.println("to clinet: " + msg);
-        netout.print(msg + "\r\n");
-        netout.flush();
-    }
-
-    public void startInputThread() {
+    private void startGravityThread() {
         new Thread(() -> {
             while (activeGame) {
                 try {
-                    lastInput = fromClient();
+                    synchronized (boardLock) {
+                        int[][] mask = activeMaskPiece.longMask(0);
+
+                        // Slet gammel position
+                        for (int[] m : mask) {
+                            setCell(pieceX + m[0], pieceY + m[1], ".");
+                        }
+
+                        // Tjek collision 1 ned
+                        boolean collision = false;
+                        for (int[] m : mask) {
+                            int gx = pieceX + m[0];
+                            int gy = (pieceY + 1) + m[1];
+                            if (gameBoard.collision(board, gx, gy)) {
+                                collision = true;
+                            }
+                        }
+
+                        if (!collision) {
+                            pieceY = pieceY + 1;
+                        }
+
+                        // Tegn ny position
+                        for (int[] m : mask) {
+                            setCell(pieceX + m[0], pieceY + m[1], "X");
+                        }
+
+                        // Send board
+                        send("BOARD IS: " + String.join("", board));
+                    }
+
+                    Thread.sleep(500);
+
                 } catch (Exception e) {
+                    e.printStackTrace();
                     break;
                 }
             }
+
+            System.out.println("Gravity-thread stoppet for: " + sock);
         }).start();
     }
+
+    private void startInputThread() {
+        new Thread(() -> {
+            while (activeGame) {
+                String input = receive();
+                if (input == null) {
+                    System.out.println("Client disconnected (input-thread).");
+                    activeGame = false;
+                    closeQuiet();
+                    break;
+                }
+                lastInput = input;
+                System.out.println("Client input: " + input);
+            }
+        }).start();
+    }
+
+    private void setCell(int x, int y, String value) {
+        if (x < 0 || x >= 10) return;
+        if (y < 0 || y >= 20) return;
+        board[y * 10 + x] = value;
+    }
+
+    private void send(String msg) {
+        System.out.println("to client: " + msg);
+        netout.println(msg);
+        netout.flush();
+
+        // PrintWriter kaster ofte ikke exception – checkError afslører fejl
+        if (netout.checkError()) {
+            System.out.println("SERVER: skrivefejl (client disconnected?)");
+            activeGame = false;
+        }
+    }
+
+    private String receive() {
+        try {
+            String line = netin.nextLine();
+            System.out.println("from client: " + line);
+            return line;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void closeQuiet() {
+        try { sock.close(); } catch (Exception e) {}
+    }
 }
+
