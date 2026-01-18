@@ -9,17 +9,20 @@ public class Board {
         return board;
     }
 
-    public boolean collision(String[] board, int gx, int gy) {
+    public boolean collisionBottom(String[] board, int gx, int gy) {
         if (gy < 0 || gy >= 20) {
-            return true;
-        }
-        if (gx < 0 || gx >= 10) {
             return true;
         }
         if (board[gy * 10 + gx].equals("#")) {
             return true;
         }
         return false;
+    }
+
+    public boolean collisionWall(String[] board, int gx, int gy) {
+        if (gx < 0 ||gx >= 10) {
+            return true;
+        } else return false;
     }
 
 
