@@ -1,31 +1,37 @@
-public class Board{
+public class Board {
+
     private String[] board = new String[200];
 
     public String[] makeBoard() {
         for (int i = 0; i < 200; i++) {
             board[i] = ".";
         }
-    
         return board;
     }
 
-    public boolean collisionBottom(String[] board, int globalX, int globalY) { //tjekker om en position er inden for globalBoard
-        
-        
-        
+    public boolean collision(String[] board, int gx, int gy) {
+        if (gy < 0 || gy >= 20) {
+            return true;
+        }
+        if (gx < 0 || gx >= 10) {
+            return true;
+        }
+        if (board[gy * 10 + gx].equals("#")) {
+            return true;
+        }
         return false;
     }
-
-    public boolean isEmpty(int x, int y) { // tjekker om en plads er ledig eller låst
-        return false;
+    
+    public String[] lockBoard(String[] board) {
+        String[] lockedBoard = board.clone();
+        for (int i = 0; i < board.length; i++) {
+            if (board[i].equals("X")){
+                lockedBoard[i] = "#";
+            }
+        }
+        return lockedBoard;
     }
 
-
-    public char[][] copyLocked() { //Kopiere board efter en kolision som kan bruges til næste activePiece
-        return null;
-    }
-
-    public void clear() { //bruges til at nulstille board til restart game
-
+    public void clear() { //Skal bruges til at nulstille board til restart game
     }
 }
