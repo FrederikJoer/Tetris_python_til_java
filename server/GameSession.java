@@ -114,7 +114,6 @@ public class GameSession {
             while (activeGame) {
                 try {
                     synchronized (boardLock) {
-
                         boolean collisionDown = false;
 
                         // tjekker collision for alle felter i y++
@@ -122,7 +121,7 @@ public class GameSession {
                             int gx = pieceX + cord[0];
                             int gy = (pieceY + 1) + cord[1];
 
-                            if (gameBoard.collision(board, gx, gy)) {
+                            if (gameBoard.collisionBottom(board, gx, gy)) {
                                 collisionDown = true;
                             }
                         }
@@ -148,9 +147,8 @@ public class GameSession {
                                 int gy = pieceY + cord[1];
                                 setCell(gx, gy);
                             }
-
                         } else {
-                            //Sletter gammel position og tegner piece på en nu position
+                            //Sletter gammel position og tegner piece på en ny position
                             deleteOldPosition();
                             pieceY = pieceY + 1;
 
@@ -178,19 +176,100 @@ public class GameSession {
         new Thread(() -> {
             while (activeGame) {
                 try {
+                    String input = lastInput;
+                    lastInput = null;
+
                     synchronized (boardLock) {
-                        toClient("BOARD IS: " + String.join("", board)); //sender boardet her fordi det er den hurtigste tick
+                        if (input != null) {
+                            if (input.equals("LEFT")) {
+                                boolean collisionLeft = false;
+
+                                for (int[] cord : mask) {
+                                    int gx = (pieceX - 1) + cord[0];
+                                    int gy = pieceY + cord[1];
+
+                                    if (gameBoard.collisionWall(board, gx, gy)) {
+                                        collisionLeft = true;
+                                    }
+                                }
+
+                                if (!collisionLeft) {
+                                    deleteOldPosition();
+                                    pieceX = pieceX - 1;
+
+                                    for (int[] cord : mask) {
+                                        int gx = pieceX + cord[0];
+                                        int gy = pieceY + cord[1];
+                                        setCell(gx, gy);
+                                    }
+                                }
+                            }
+
+                            if (input.equals("RIGHT")) {
+                                boolean collisionRight = false;
+
+                                for (int[] cord : mask) {
+                                    int gx = (pieceX + 1) + cord[0];
+                                    int gy = pieceY + cord[1];
+
+                                    if (gameBoard.collisionWall(board, gx, gy)) {
+                                        collisionRight = true;
+                                    }
+                                }
+
+                                if (!collisionRight) {
+                                    deleteOldPosition();
+                                    pieceX = pieceX + 1;
+
+                                    for (int[] cord : mask) {
+                                        int gx = pieceX + cord[0];
+                                        int gy = pieceY + cord[1];
+                                        setCell(gx, gy);
+                                    }
+                                }
+                            }
+
+                            if (input.equals("ROTATE")) {
+                                int nextRotationIndex = (rotationIndex + 1) % 4;
+
+                                int[][] nextMask = activeMaskPiece.getMask(activePieceId, nextRotationIndex);
+
+                                boolean canRotate = true;
+
+                                for (int[] cord : nextMask) {
+                                    int gx = pieceX + cord[0];
+                                    int gy = pieceY + cord[1];
+
+                                    if (gameBoard.collisionWall(board, gx, gy)) {
+                                        canRotate = false;
+                                        break;
+                                    }
+                                }
+                                if (canRotate) {
+                                    deleteOldPosition();
+
+                                    rotationIndex = nextRotationIndex;
+                                    mask = nextMask;
+
+                                    for (int[] cord : mask) {
+                                        int gx = pieceX + cord[0];
+                                        int gy = pieceY + cord[1];
+                                        setCell(gx, gy);
+                                    }
+                                }
+                            }
+                        }
+
+                        toClient("BOARD IS: " + String.join("", board));
                     }
-                    //Thread.sleep(500); // kun for test
-                    Thread.sleep(50); //Sender board hvert 0,05 sekund
+
+                    Thread.sleep(50);
 
                 } catch (Exception e) {
                     e.printStackTrace();
                     break;
                 }
             }
-
-            //System.out.println("Movement thread stopped for: " + sock); // til test
         }).start();
     }
 
@@ -206,18 +285,17 @@ public class GameSession {
                 }
                 lastInput = input;
                 System.out.println("Client input: " + input);
-
             }
         }).start();
     }
 
     //metode til at slette det forgående position
-    private void deleteOldPosition() {  
+    private void deleteOldPosition() {
         for (int[] cord : mask) {
             board[(pieceY + cord[1]) * 10 + (pieceX + cord[0])] = ".";
         }
     }
-    
+
     //metode til at sette en cell for en brik
     private void setCell(int x, int y) {
         board[y * 10 + x] = "X";
@@ -234,7 +312,7 @@ public class GameSession {
             activeGame = false;
         }
     }
-    
+
     //Metode til at modtage fra clienten
     private String fromClient() {
         try {
@@ -247,6 +325,8 @@ public class GameSession {
     }
 
     private void closeQuiet() {
-        try { sock.close(); } catch (Exception e) {}
+        try {
+            sock.close();
+        } catch (Exception e) {}
     }
 }
