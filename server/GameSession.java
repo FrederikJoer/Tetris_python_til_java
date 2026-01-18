@@ -18,19 +18,26 @@ public class GameSession {
     public String playerName = "";
     public String start = "";
 
-    public int pieceX = 3;
-    public int pieceY = 0;
+    public int pieceX = 3; //spawn position i x retning
+    public int pieceY = 0; //spawn position i y retning
 
-    private final Object boardLock = new Object();
-    private String[] board = null;
+    private final Object boardLock = new Object(); //lås til ændring af board
+    private String[] board = null; //selve boardet
+
+    // gemmer mask
+    public int[][] mask;
+
+    // gemmer aktiv brik og næste brik og rotationIndex
+    public int activePieceId = 0;
+    public int nextActivePieceId = 0;
+    public int rotationIndex = 0;
 
     public GameSession(Socket sock) {
         this.sock = sock;
 
         try {
             this.netin = new Scanner(sock.getInputStream());
-            this.netout = new PrintWriter(sock.getOutputStream()); // ingen autoflush
-
+            this.netout = new PrintWriter(sock.getOutputStream());
             this.gameBoard = new Board();
             this.activeMaskPiece = new MaskPiece();
 
@@ -42,21 +49,20 @@ public class GameSession {
     public void run() {
         System.out.println("GameSession kører for: " + sock);
 
-        send("WELCOME TO TETRIS");
+        toClient("WELCOME TO TETRIS");
 
         chooseName = true;
         while (chooseName) {
-            send("CHOOSE A NAME");
-            playerName = receive();
+            toClient("CHOOSE A NAME");
+            playerName = fromClient();
 
             if (playerName == null) {
-                // client disconnect
                 closeQuiet();
                 return;
             }
 
             if (playerName.isEmpty()) {
-                send("WRONG NAME");
+                toClient("WRONG NAME");
             } else {
                 chooseName = false;
                 startGame = true;
@@ -64,11 +70,10 @@ public class GameSession {
         }
 
         while (startGame) {
-            send("WRITE START TO START");
-            start = receive();
+            toClient("WRITE START TO START");
+            start = fromClient();
 
             if (start == null) {
-                // client disconnect
                 closeQuiet();
                 return;
             }
@@ -77,17 +82,31 @@ public class GameSession {
                 activeGame = true;
                 startGame = false;
             } else {
-                send("UNKNOWN START");
+                toClient("UNKNOWN START");
             }
         }
 
         board = gameBoard.makeBoard();
 
-        // Input-thread (læser input under spil)
-        startInputThread();
+        activePieceId = activeMaskPiece.randomNumber();
+        nextActivePieceId = activeMaskPiece.randomNumber();
 
-        // Gravity-thread (sender board løbende)
-        startGravityThread();
+        rotationIndex = 0;
+        mask = activeMaskPiece.getMask(activePieceId, rotationIndex);
+
+        synchronized (boardLock) { //tegner den første brik med låsen
+            for (int[] cord : mask) {
+                int gx = pieceX + cord[0];
+                int gy = pieceY + cord[1];
+                setCell(gx, gy);
+            }
+            toClient("BOARD IS: " + String.join("", board));
+        }
+
+        startInputThread(); //starter tråd til at lytte til client uden at blokere de to tick-threads
+
+        startGravityThread();   // starter tick for håndtering af gravity (y-retning)
+        startMovementThread();  // starter tick for håndtering af movement (x-retningen og rotation)
     }
 
     private void startGravityThread() {
@@ -95,37 +114,55 @@ public class GameSession {
             while (activeGame) {
                 try {
                     synchronized (boardLock) {
-                        int[][] mask = activeMaskPiece.longMask(0);
 
-                        // Slet gammel position
-                        for (int[] m : mask) {
-                            setCell(pieceX + m[0], pieceY + m[1], ".");
-                        }
+                        boolean collisionDown = false;
 
-                        // Tjek collision 1 ned
-                        boolean collision = false;
-                        for (int[] m : mask) {
-                            int gx = pieceX + m[0];
-                            int gy = (pieceY + 1) + m[1];
+                        // tjekker collision for alle felter i y++
+                        for (int[] cord : mask) {
+                            int gx = pieceX + cord[0];
+                            int gy = (pieceY + 1) + cord[1];
+
                             if (gameBoard.collision(board, gx, gy)) {
-                                collision = true;
+                                collisionDown = true;
                             }
                         }
 
-                        if (!collision) {
+                        if (collisionDown) {
+                            //Locker boardet
+                            board = gameBoard.lockBoard(board);
+
+                            activePieceId = nextActivePieceId;
+                            nextActivePieceId = activeMaskPiece.randomNumber();
+
+                            rotationIndex = 0;
+
+                            //Nulstiller spawn position
+                            pieceX = 3;
+                            pieceY = 0;
+
+                            mask = activeMaskPiece.getMask(activePieceId, rotationIndex);
+
+                            // Tegner ny brik
+                            for (int[] cord : mask) {
+                                int gx = pieceX + cord[0];
+                                int gy = pieceY + cord[1];
+                                setCell(gx, gy);
+                            }
+
+                        } else {
+                            //Sletter gammel position og tegner piece på en nu position
+                            deleteOldPosition();
                             pieceY = pieceY + 1;
-                        }
 
-                        // Tegn ny position
-                        for (int[] m : mask) {
-                            setCell(pieceX + m[0], pieceY + m[1], "X");
+                            for (int[] cord : mask) {
+                                int gx = pieceX + cord[0];
+                                int gy = pieceY + cord[1];
+                                setCell(gx, gy);
+                            }
                         }
-
-                        // Send board
-                        send("BOARD IS: " + String.join("", board));
                     }
 
-                    Thread.sleep(500);
+                    Thread.sleep(500); // tick: hver 0,5 sekund
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -133,45 +170,73 @@ public class GameSession {
                 }
             }
 
-            System.out.println("Gravity-thread stoppet for: " + sock);
+            //System.out.println("Gravity thread stopped for: " + sock); //til test
+        }).start();
+    }
+
+    private void startMovementThread() {
+        new Thread(() -> {
+            while (activeGame) {
+                try {
+                    synchronized (boardLock) {
+                        toClient("BOARD IS: " + String.join("", board)); //sender boardet her fordi det er den hurtigste tick
+                    }
+                    //Thread.sleep(500); // kun for test
+                    Thread.sleep(50); //Sender board hvert 0,05 sekund
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    break;
+                }
+            }
+
+            //System.out.println("Movement thread stopped for: " + sock); // til test
         }).start();
     }
 
     private void startInputThread() {
         new Thread(() -> {
             while (activeGame) {
-                String input = receive();
+                String input = fromClient();
                 if (input == null) {
-                    System.out.println("Client disconnected (input-thread).");
+                    System.out.println("Client disconnected...");
                     activeGame = false;
                     closeQuiet();
                     break;
                 }
                 lastInput = input;
                 System.out.println("Client input: " + input);
+
             }
         }).start();
     }
 
-    private void setCell(int x, int y, String value) {
-        if (x < 0 || x >= 10) return;
-        if (y < 0 || y >= 20) return;
-        board[y * 10 + x] = value;
+    //metode til at slette det forgående position
+    private void deleteOldPosition() {  
+        for (int[] cord : mask) {
+            board[(pieceY + cord[1]) * 10 + (pieceX + cord[0])] = ".";
+        }
+    }
+    
+    //metode til at sette en cell for en brik
+    private void setCell(int x, int y) {
+        board[y * 10 + x] = "X";
     }
 
-    private void send(String msg) {
+    //Metode til at sende til clienten
+    private void toClient(String msg) {
         System.out.println("to client: " + msg);
         netout.println(msg);
         netout.flush();
 
-        // PrintWriter kaster ofte ikke exception – checkError afslører fejl
         if (netout.checkError()) {
-            System.out.println("SERVER: skrivefejl (client disconnected?)");
+            System.out.println("ERROR: connection");
             activeGame = false;
         }
     }
-
-    private String receive() {
+    
+    //Metode til at modtage fra clienten
+    private String fromClient() {
         try {
             String line = netin.nextLine();
             System.out.println("from client: " + line);
@@ -185,4 +250,3 @@ public class GameSession {
         try { sock.close(); } catch (Exception e) {}
     }
 }
-
