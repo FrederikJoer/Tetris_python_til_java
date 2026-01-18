@@ -6,42 +6,39 @@ public class GameSession {
     private Socket sock;
     private Scanner netin;
     private PrintWriter netout;
-    private ProtocolMSG protocol;
+
     private Board gameBoard;
-    private ActivePiece activePieceMovement;
     private MaskPiece activeMaskPiece;
 
-    private Boolean activeGame = false;
-    private Boolean chooseName = false;
-    private Boolean startGame = false;
+    private boolean activeGame = false;
+    private boolean chooseName = false;
+    private boolean startGame = false;
 
     public String lastInput = null;
     public String playerName = "";
     public String start = "";
 
-    public String pieceType = "";
-    //public int globalBoardX = 0;
-    //public int globalBoardY = 0;
-    //public int localX = 0;
-    //public int localY = 0;
-    public int pieceX = 0;
-    public int pieceY = 0;
+    public int pieceX = 3; //spawn position i x retning
+    public int pieceY = 0; //spawn position i y retning
 
-    public int startPiecex = 3;
-    public int startPiecey = 0;
+    private final Object boardLock = new Object(); //lås til ændring af board
+    private String[] board = null; //selve boardet
 
-    private final Object boardLock = new Object(); // FIX
-    private String[] board = null; // FIX
+    // gemmer mask
+    public int[][] mask;
 
-    public GameSession(Socket sock) { // constructer
+    // gemmer aktiv brik og næste brik og rotationIndex
+    public int activePieceId = 0;
+    public int nextActivePieceId = 0;
+    public int rotationIndex = 0;
+
+    public GameSession(Socket sock) {
         this.sock = sock;
 
         try {
             this.netin = new Scanner(sock.getInputStream());
             this.netout = new PrintWriter(sock.getOutputStream());
-            this.protocol = new ProtocolMSG();
             this.gameBoard = new Board();
-            this.activePieceMovement = new ActivePiece();
             this.activeMaskPiece = new MaskPiece();
 
         } catch (Exception e) {
@@ -51,6 +48,7 @@ public class GameSession {
 
     public void run() {
         System.out.println("GameSession kører for: " + sock);
+
         toClient("WELCOME TO TETRIS");
 
         chooseName = true;
@@ -58,8 +56,13 @@ public class GameSession {
             toClient("CHOOSE A NAME");
             playerName = fromClient();
 
+            if (playerName == null) {
+                closeQuiet();
+                return;
+            }
+
             if (playerName.isEmpty()) {
-                toClient(protocol.wrongName());
+                toClient("WRONG NAME");
             } else {
                 chooseName = false;
                 startGame = true;
@@ -67,120 +70,183 @@ public class GameSession {
         }
 
         while (startGame) {
-            toClient("WRITE s TO START");
-
+            toClient("WRITE START TO START");
             start = fromClient();
 
-            if (start.equals("s")) {
+            if (start == null) {
+                closeQuiet();
+                return;
+            }
+
+            if (start.equals("START")) {
                 activeGame = true;
                 startGame = false;
             } else {
-                toClient(protocol.unknowStart());
+                toClient("UNKNOWN START");
             }
         }
 
         board = gameBoard.makeBoard();
-        pieceX = startPiecex;
-        pieceY = startPiecey;
 
-        System.out.println(board);
+        activePieceId = activeMaskPiece.randomNumber();
+        nextActivePieceId = activeMaskPiece.randomNumber();
 
-        startInputThread();
+        rotationIndex = 0;
+        mask = activeMaskPiece.getMask(activePieceId, rotationIndex);
 
-        Thread movement = new Thread(() -> {
-            while (activeGame) {
-                String gameStatus = "";
-                String score = "";
-
-                synchronized (boardLock) {
-                    //System.out.println("Er inden i syncronized for movement");
-                }
-
-                try {
-                    Thread.sleep(50);
-                } catch (Exception e) {}
+        synchronized (boardLock) { //tegner den første brik med låsen
+            for (int[] cord : mask) {
+                int gx = pieceX + cord[0];
+                int gy = pieceY + cord[1];
+                setCell(gx, gy);
             }
-        });
+            toClient("BOARD IS: " + String.join("", board));
+        }
 
-        Thread gravity = new Thread(() -> {
-            while (activeGame) {
+        startInputThread(); //starter tråd til at lytte til client uden at blokere de to tick-threads
 
-                synchronized (boardLock) {
-                    pieceType = "LONG";
-
-                    int[][] mask = activeMaskPiece.longMask(0);
-
-                    for (int[] m : mask) {
-                        setCell(pieceX + m[0], pieceY + m[1], ".");
-                    }
-
-                    boolean collision = false;
-                    for (int[] m : mask) {
-                        int gx = pieceX + m[0];
-                        int gy = (pieceY + 1) + m[1];
-
-                        if (gx < 0 || gx >= 10) collision = true;
-                        if (gy < 0 || gy >= 20) collision = true;
-
-                        if (!collision) {
-                            int index = gy * 10 + gx;
-                            if (!board[index].equals(".")) collision = true;
-                        }
-                    }
-
-                    if (!collision) {
-                        pieceY = pieceY + 1;
-                    }
-
-                    for (int[] m : mask) {
-                        setCell(pieceX + m[0], pieceY + m[1], "X");
-                    }
-
-                    toClient("BOARD IS " + String.join("", board));
-                }
-
-                try {
-                    Thread.sleep(500);
-                } catch (Exception e) {}
-            }
-        });
-
-        movement.start();
-        gravity.start();
+        startGravityThread();   // starter tick for håndtering af gravity (y-retning)
+        startMovementThread();  // starter tick for håndtering af movement (x-retningen og rotation)
     }
 
-    public void setCell(int x, int y, String value) {
-        int WIDTH = 10;
-        int HEIGHT = board.length / WIDTH;
-
-        if (x < 0 || x >= WIDTH) return;
-        if (y < 0 || y >= HEIGHT) return;
-
-        int index = y * WIDTH + x;
-        board[index] = value;
-    }
-
-    public String fromClient() {
-        String fromclient = netin.nextLine();
-        System.out.println("from client: " + fromclient);
-        return fromclient;
-    }
-
-    public void toClient(String msg) {
-        System.out.println("to clinet: " + msg);
-        netout.print(msg + "\r\n");
-        netout.flush();
-    }
-
-    public void startInputThread() {
+    private void startGravityThread() {
         new Thread(() -> {
             while (activeGame) {
                 try {
-                    lastInput = fromClient();
+                    synchronized (boardLock) {
+
+                        boolean collisionDown = false;
+
+                        // tjekker collision for alle felter i y++
+                        for (int[] cord : mask) {
+                            int gx = pieceX + cord[0];
+                            int gy = (pieceY + 1) + cord[1];
+
+                            if (gameBoard.collision(board, gx, gy)) {
+                                collisionDown = true;
+                            }
+                        }
+
+                        if (collisionDown) {
+                            //Locker boardet
+                            board = gameBoard.lockBoard(board);
+
+                            activePieceId = nextActivePieceId;
+                            nextActivePieceId = activeMaskPiece.randomNumber();
+
+                            rotationIndex = 0;
+
+                            //Nulstiller spawn position
+                            pieceX = 3;
+                            pieceY = 0;
+
+                            mask = activeMaskPiece.getMask(activePieceId, rotationIndex);
+
+                            // Tegner ny brik
+                            for (int[] cord : mask) {
+                                int gx = pieceX + cord[0];
+                                int gy = pieceY + cord[1];
+                                setCell(gx, gy);
+                            }
+
+                        } else {
+                            //Sletter gammel position og tegner piece på en nu position
+                            deleteOldPosition();
+                            pieceY = pieceY + 1;
+
+                            for (int[] cord : mask) {
+                                int gx = pieceX + cord[0];
+                                int gy = pieceY + cord[1];
+                                setCell(gx, gy);
+                            }
+                        }
+                    }
+
+                    Thread.sleep(500); // tick: hver 0,5 sekund
+
                 } catch (Exception e) {
+                    e.printStackTrace();
                     break;
                 }
             }
+
+            //System.out.println("Gravity thread stopped for: " + sock); //til test
         }).start();
+    }
+
+    private void startMovementThread() {
+        new Thread(() -> {
+            while (activeGame) {
+                try {
+                    synchronized (boardLock) {
+                        toClient("BOARD IS: " + String.join("", board)); //sender boardet her fordi det er den hurtigste tick
+                    }
+                    //Thread.sleep(500); // kun for test
+                    Thread.sleep(50); //Sender board hvert 0,05 sekund
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    break;
+                }
+            }
+
+            //System.out.println("Movement thread stopped for: " + sock); // til test
+        }).start();
+    }
+
+    private void startInputThread() {
+        new Thread(() -> {
+            while (activeGame) {
+                String input = fromClient();
+                if (input == null) {
+                    System.out.println("Client disconnected...");
+                    activeGame = false;
+                    closeQuiet();
+                    break;
+                }
+                lastInput = input;
+                System.out.println("Client input: " + input);
+
+            }
+        }).start();
+    }
+
+    //metode til at slette det forgående position
+    private void deleteOldPosition() {  
+        for (int[] cord : mask) {
+            board[(pieceY + cord[1]) * 10 + (pieceX + cord[0])] = ".";
+        }
+    }
+    
+    //metode til at sette en cell for en brik
+    private void setCell(int x, int y) {
+        board[y * 10 + x] = "X";
+    }
+
+    //Metode til at sende til clienten
+    private void toClient(String msg) {
+        System.out.println("to client: " + msg);
+        netout.println(msg);
+        netout.flush();
+
+        if (netout.checkError()) {
+            System.out.println("ERROR: connection");
+            activeGame = false;
+        }
+    }
+    
+    //Metode til at modtage fra clienten
+    private String fromClient() {
+        try {
+            String line = netin.nextLine();
+            System.out.println("from client: " + line);
+            return line;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void closeQuiet() {
+        try { sock.close(); } catch (Exception e) {}
     }
 }
