@@ -21,8 +21,8 @@ public class DisplayBoard extends JFrame {
     //Constructor. Sets layout
     public DisplayBoard(Socket sock, Scanner netin, PrintWriter netout) {
         this.sock = sock;
-        this.netout = netout;
         this.netin = netin;
+        this.netout = netout;
 
         setupGUI();
     }
@@ -73,25 +73,21 @@ public class DisplayBoard extends JFrame {
         setupKeyBindings();
     }
 
+    //Method to setup the keys to enable controls.
     private void setupKeyBindings() {
         addKeyListener(new KeyAdapter() {
-            @Override
             public void keyPressed(KeyEvent e) {
-                switch (e.getKeyCode()) {
-                    case KeyEvent.VK_LEFT:
-                        sendCommand("LEFT");
-                        break;
-                    case KeyEvent.VK_RIGHT:
-                        sendCommand("RIGHT");
-                        break;
-                    case KeyEvent.VK_UP:
-                        sendCommand("ROTATE");
-                        break;
-                    case KeyEvent.VK_DOWN:
-                        sendCommand("SOFT");
-                        break;
+                int keyCode = e.getKeyCode();
+                if (keyCode == KeyEvent.VK_LEFT) {
+                    sendCommand("LEFT");
+                } else if (keyCode == KeyEvent.VK_RIGHT) {
+                    sendCommand("RIGHT");
+                } else if (keyCode == KeyEvent.VK_UP) {
+                    sendCommand("ROTATE");
+                } else if (keyCode == KeyEvent.VK_DOWN) {
+                    sendCommand("SOFT");
                 }
-            }
+            }           
         });
         
         // Make sure the frame can receive key events
@@ -103,7 +99,9 @@ public class DisplayBoard extends JFrame {
     public void sendCommand(String command) {
         try {
             if (netout != null) {
+                System.out.println("Sending move: "+ command);
                 netout.println(command);
+                netout.flush();
             }
         } catch (Exception e) {
             System.err.println("Error printing command: " + e.getMessage());
@@ -114,7 +112,7 @@ public class DisplayBoard extends JFrame {
         setVisible(true);
         connectToServer();
     }
-
+    
     //Method for connecting to server.
     private void connectToServer() {
 
@@ -129,12 +127,11 @@ public class DisplayBoard extends JFrame {
                 System.out.println("DEBUG: Received from server - EnterName: " + enterName);
 
                 //Show the welcome-window.
-                SwingUtilities.invokeLater(() -> showWelcome()); 
+                showWelcome(); 
 
             } catch (Exception e){
-                System.err.println("Error in server-connection: " + e.getMessage());
-                SwingUtilities.invokeLater(() -> 
-                    statusField.setText("Connection error: " + e.getMessage()));
+                System.err.println("Error in server-connection: " + e.getMessage()); 
+                statusField.setText("Connection error: " + e.getMessage());
             }
         });
 
@@ -150,7 +147,6 @@ public class DisplayBoard extends JFrame {
         
         // Create textlabels
         JLabel title = new JLabel("WELCOME TO TETRIS", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 16));
         JLabel name = new JLabel("ENTER YOUR NAME: ");
 
         //Create textfield to enter name in, and a start-button.
@@ -193,19 +189,17 @@ public class DisplayBoard extends JFrame {
                 //Send information to server in order to start game.
                 netout.println(playerName);
                 netout.println("START");
+                netout.flush();
 
                 //Listen to answers from server continuously
                 while (true) {
                     if (netin.hasNextLine()) {
                         String serverMessage = netin.nextLine();
-                        System.out.println("DEBUG: Received message: " + serverMessage);
+                        if (serverMessage.startsWith("BOARD")) {
+                            System.out.println("DEBUG: Recieved board: " + serverMessage);
+                        }
                         processMessage(serverMessage);
-                    } else {
-                        System.out.println("DEBUG: Server disconnected");
-                        SwingUtilities.invokeLater(() -> 
-                            statusField.setText("Server disconnected"));
-                        break;
-                    }
+                    } 
                 }
 
             } catch (Exception e) {
@@ -230,30 +224,30 @@ public class DisplayBoard extends JFrame {
         // To set the score
         } else if (serverMessage.startsWith("SCORE")) {
             System.out.println("DEBUG: Score message detected: " + serverMessage);
-            SwingUtilities.invokeLater(() -> 
-                highScoreField.setText("SCORE: " + serverMessage.substring(5).trim()));
+            highScoreField.setText("SCORE: " + serverMessage.substring(5).trim());
         //To set the status-field. 
         } else if (serverMessage.startsWith("GAME OVER")) {
-            System.out.println("DEBUG: Game over message detected");
-            SwingUtilities.invokeLater(() -> 
-                statusField.setText(serverMessage));
+            System.out.println("DEBUG: Game over message detected"); 
+            statusField.setText(serverMessage);
         } else {
             System.out.println("DEBUG: Unknown message format");
         }
     }
 
+    //Updates the board in the GUI
     private void updateBoard(String serverMessage) {
         String board = serverMessage.substring(9);
-        System.out.println(board);
+        System.out.println("Setting board: " + board);
 
+        //Iterates over every 'block' in the GUI, and sets the color based on the board-string from the server.
         for (int i = 0; i < 200; i++) {
             int row = i / 10;  // Integer division gives row
             int col = i % 10;  // Modulo gives column 
             if (row < 20 && col < 10) {
                 char cell = board.charAt(i);
             
-                if (cell == 'x') {
-                    boardCells[row][col].setBackground(Color.CYAN);
+                if (cell == 'X' || cell =='#') {
+                    boardCells[row][col].setBackground(Color.BLACK);
                 } else {
                     boardCells[row][col].setBackground(Color.WHITE);
                 }

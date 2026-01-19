@@ -1,0 +1,23 @@
+
+Player ID: null. Score: 1000
+Player ID: test. Score: 1000
+Player ID: r. Score: 1000
+Player ID: t. Score: 1000
+Player ID: f. Score: 1000
+Player ID: f. Score: 1000
+Player ID: f. Score: 1000
+Player ID: s. Score: 1000
+Player ID: f. Score: 1000
+Player ID: d. Score: 1000
+Player ID: f. Score: 1000
+Player ID: f. Score: 1000
+Player ID: f. Score: 1000
+Player ID: r. Score: 1000
+Player ID: f. Score: 1000
+Player ID: f. Score: 1000
+Player ID: f. Score: 1000
+Player ID: f. Score: 1000
+Player ID: d. Score: 1000
+Player ID: f. Score: 1000
+Player ID: f. Score: 1000
+Player ID: f. Score: 1000
