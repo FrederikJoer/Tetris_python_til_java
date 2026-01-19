@@ -57,5 +57,69 @@ public class userLog {
             e.printStackTrace();
         }
     }
-}
 
+    public static String[] top10() {
+
+        String[] topNames = new String[10];
+        int[] topScores = new int[10];
+
+        // init med placeholders
+        for (int i = 0; i < 10; i++) {
+            topNames[i] = ".............................";
+            topScores[i] = -1;
+        }
+
+        try {
+            Scanner sc = new Scanner(new File("playersLog.txt"));
+
+            while (sc.hasNextLine()) {
+                String line = sc.nextLine();
+
+                // Forventer: Player ID: <name>. Score: <score>
+                if (line.startsWith("Player ID: ") && line.contains(". Score: ")) {
+
+                    int nameStart = "Player ID: ".length();
+                    int nameEnd = line.indexOf(". Score: ");
+                    String name = line.substring(nameStart, nameEnd);
+
+                    int score = Integer.parseInt(
+                        line.substring(line.lastIndexOf(" ") + 1)
+                    );
+
+                    // indsæt i top 10 hvis score er høj nok
+                    for (int i = 0; i < 10; i++) {
+                        if (score > topScores[i]) {
+
+                            // skub resten ned
+                            for (int j = 9; j > i; j--) {
+                                topScores[j] = topScores[j - 1];
+                                topNames[j] = topNames[j - 1];
+                            }
+
+                            topScores[i] = score;
+                            topNames[i] = name;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            sc.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // byg output array
+        String[] result = new String[10];
+        for (int i = 0; i < 10; i++) {
+            if (topScores[i] == -1) {
+                result[i] = (i + 1) + ". .............................";
+            } else {
+                result[i] = (i + 1) + ". " + topNames[i] + " - " + topScores[i];
+            }
+        }
+
+        return result;
+    }
+}

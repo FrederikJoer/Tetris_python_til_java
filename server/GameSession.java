@@ -428,10 +428,9 @@ public class GameSession {
 
 
     public void sendGameInfo(String[] board, int score, int activePiece, int nextActivePieceId) {
-        toClient("BOARD IS: " + String.join("", board));
+        toClient("BOARD IS: " + String.join("", board) + " PIECE IS: " + activePiece);
         toClient("SCORE IS: " + score);
-        toClient("PIECE IS: " + activePiece);
-        toClient("NEXT PIECE IS: " + nextActivePieceId);
+        //toClient("NEXT PIECE IS: " + nextActivePieceId);
     }
 
 
