@@ -273,7 +273,6 @@ public class GameSession {
                                 gravityTickSet("SOFT");
                             }
                         }
-
                         toClient("BOARD IS: " + String.join("", board));
                     }
 
