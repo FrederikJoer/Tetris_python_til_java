@@ -25,13 +25,11 @@ public class GameSession {
     public int gravityTick = 500;
     public int movementTick = 50;
 
-    // FIX: softdrop-state (timeout-baseret reset)
-    private final int normalGravityTick = 500; // FIX
-    private final int softGravityTick = 50;    // FIX
-    private int softFramesLeft = 0;            // FIX: hvor mange movement-ticks softdrop skal blive ved efter sidste "SOFT"
+    public int score = 0;
 
-    // FIX: score som opdateres når der cleares rows
-    public int score = 1000; // FIX: flyttet til felt så den kan opdateres løbende
+    private final int normalGravityTick = 500;
+    private final int softGravityTick = 50;  
+    private int softFramesLeft = 0;            
 
     private final Object boardLock = new Object(); //lås til ændring af board
     private String[] board = null; //selve boardet
@@ -44,8 +42,7 @@ public class GameSession {
     public int nextActivePieceId = 0;
     public int rotationIndex = 0;
 
-    // FIX: gemmer hvor mange rækker der blev clearet i sidste fullrow() kald
-    private int rowsClearedLast = 0; // FIX
+    private int rowsClearedLast = 0;
 
     public GameSession(Socket sock) {
         this.sock = sock;
@@ -189,7 +186,7 @@ public class GameSession {
                         }
 
                         if (gravityTick < movementTick) {
-                            toClient("BOARD IS: " + String.join("", board));
+                            sendGameInfo(board, score, activePieceId, nextActivePieceId);
                         }
                     }
 
@@ -306,7 +303,7 @@ public class GameSession {
                         }
 
                         if (gravityTick >= movementTick) {
-                            toClient("BOARD IS: " + String.join("", board));
+                            sendGameInfo(board, score, activePieceId, nextActivePieceId);
                         }
                     }
 
@@ -428,6 +425,15 @@ public class GameSession {
 
         return currentBoard;
     }
+
+
+    public void sendGameInfo(String[] board, int score, int activePiece, int nextActivePieceId) {
+        toClient("BOARD IS: " + String.join("", board));
+        toClient("SCORE IS: " + score);
+        toClient("PIECE IS: " + activePiece);
+        toClient("NEXT PIECE IS: " + nextActivePieceId);
+    }
+
 
     //Metode til at sende til clienten
     private void toClient(String msg) {
