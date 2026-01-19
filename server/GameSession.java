@@ -23,7 +23,15 @@ public class GameSession {
     public int pieceY = 0; //spawn position i y retning
 
     public int gravityTick = 500;
+    public int movementTick = 50;
 
+    // FIX: softdrop-state (timeout-baseret reset)
+    private final int normalGravityTick = 500; // FIX
+    private final int softGravityTick = 50;    // FIX
+    private int softFramesLeft = 0;            // FIX: hvor mange movement-ticks softdrop skal blive ved efter sidste "SOFT"
+
+    // FIX: score som opdateres når der cleares rows
+    public int score = 1000; // FIX: flyttet til felt så den kan opdateres løbende
 
     private final Object boardLock = new Object(); //lås til ændring af board
     private String[] board = null; //selve boardet
@@ -35,6 +43,9 @@ public class GameSession {
     public int activePieceId = 0;
     public int nextActivePieceId = 0;
     public int rotationIndex = 0;
+
+    // FIX: gemmer hvor mange rækker der blev clearet i sidste fullrow() kald
+    private int rowsClearedLast = 0; // FIX
 
     public GameSession(Socket sock) {
         this.sock = sock;
@@ -61,8 +72,8 @@ public class GameSession {
             toClient("CHOOSE A NAME");
             playerName = fromClient();
 
-            int score = 1000;
-            log.main(playerName,score);
+            // FIX: score er nu et felt, så vi logger startscore her
+            log.main(playerName, score); // FIX
 
             if (playerName == null) {
                 closeQuiet();
@@ -136,7 +147,17 @@ public class GameSession {
 
                         if (collisionDown) {
                             //Locker boardet
-                            board = gameBoard.lockBoard(board);
+                            board = gameBoard.lockBoard(board); // lock først
+
+                            // clear full rows her (kun ved collision) + opdater score stabilt
+                            board = fullrow(board); // fullrow sætter rowsClearedLast
+
+                            if (rowsClearedLast > 0) {
+                                score += scoreForRows(rowsClearedLast);
+
+                                // FIX: opdater log når score ændres
+                                log.main(playerName, score); // FIX
+                            }
 
                             activePieceId = nextActivePieceId;
                             nextActivePieceId = activeMaskPiece.randomNumber();
@@ -167,11 +188,12 @@ public class GameSession {
                             }
                         }
 
-                        toClient("BOARD IS: " + String.join("", board)); // FIX: send fra gravity så fald ses korrekt
+                        if (gravityTick < movementTick) {
+                            toClient("BOARD IS: " + String.join("", board));
+                        }
                     }
 
-                    Thread.sleep(gravityTick); // tick: 500ms normal, lavere ved softdrop
-                    //gravityTick = 500; 
+                    Thread.sleep(gravityTick); // ingen one-shot reset her (ellers bliver soft hakkende)
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -190,7 +212,19 @@ public class GameSession {
                     lastInput = null;
 
                     synchronized (boardLock) {
+
+                        if (softFramesLeft > 0) {
+                            softFramesLeft--;
+                            if (softFramesLeft == 0) {
+                                gravityTick = normalGravityTick;
+                            }
+                        }
+
                         if (input != null) {
+                            if (input.equals("SOFT")) {
+                                gravityTickSet("SOFT");
+                            }
+
                             if (input.equals("LEFT")) {
                                 boolean collisionLeft = false;
 
@@ -255,6 +289,7 @@ public class GameSession {
                                         break;
                                     }
                                 }
+
                                 if (canRotate) {
                                     deleteOldPosition();
 
@@ -268,16 +303,14 @@ public class GameSession {
                                     }
                                 }
                             }
-
-                            if (input.equals("SOFT")) {
-                                gravityTickSet("SOFT");
-                            }
                         }
-                        toClient("BOARD IS: " + String.join("", board));
+
+                        if (gravityTick >= movementTick) {
+                            toClient("BOARD IS: " + String.join("", board));
+                        }
                     }
 
-                    Thread.sleep(50);
-                    gravityTick = 500; 
+                    Thread.sleep(movementTick);
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -292,7 +325,7 @@ public class GameSession {
             while (activeGame) {
                 String input = fromClient();
                 if (input == null) {
-                    System.out.println("Client disconnected...\rName: " + playerName + "\r\nSock: " + sock);
+                    System.out.println("Client disconnected...\r\nName: " + playerName + "\r\nSock: " + sock);
                     activeGame = false;
                     closeQuiet();
                     break;
@@ -317,61 +350,88 @@ public class GameSession {
 
     private void gravityTickSet(String reason) {
         if (reason.equals("SOFT")) {
-            gravityTick = 50; // FIX: 1ms er for voldsomt og bliver ikke set ordentligt af klienten
+            gravityTick = softGravityTick;
+            softFramesLeft = 2;
         }
     }
 
+    // score tabel (1..5 rækker)
+    private int scoreForRows(int rows) {
+        if (rows == 1) {
+            return 100;
+        } else if (rows == 2) {
+            return 200;
+        } else if (rows == 3) {
+            return 300;
+        } else if (rows == 4) {
+            return 400;
+        } else if (rows == 5) {
+            return 500;
+        }
+        return 0;
+    }
 
-    private String[] FullRow(String[] board) {
+    // fullrow returnerer board + sætter rowsClearedLast
+    private String[] fullrow(String[] board) {
         int width = 10;
         int height = 20;
+
         String[] currentBoard = board.clone();
+
+        boolean foundAnyFullRow = false;
         boolean foundFullRow = true;
 
-        //Loop that updates board until there are no full rows
+        int rowsCleared = 0;
+
         while (foundFullRow) {
             foundFullRow = false;
-            
-            //Iterate over each row, and check if its full
-            for (int row = height-1; row>=0; row--) {
+
+            for (int row = height - 1; row >= 0; row--) {
                 boolean RowFull = true;
 
-                //Check for empty spaces in the row.
-                for (int col = 0; col>=width; col++) {
+                for (int col = 0; col < width; col++) {
                     int index = row * width + col;
                     if (currentBoard[index].equals(".")) {
                         RowFull = false;
                         break;
                     }
                 }
-                
-                //If the row is full, shift the row above down, and replace that row with an empty row.
+
                 if (RowFull) {
                     foundFullRow = true;
+                    foundAnyFullRow = true;
+                    rowsCleared++;
+
                     for (int shiftRow = row; shiftRow > 0; shiftRow--) {
                         for (int col = 0; col < width; col++) {
-                            int currentIndex = shiftRow * width+ col;
+                            int currentIndex = shiftRow * width + col;
                             int aboveIndex = (shiftRow - 1) * width + col;
                             currentBoard[currentIndex] = currentBoard[aboveIndex];
                         }
-                     }
+                    }
 
                     for (int col = 0; col < width; col++) {
                         currentBoard[col] = ".";
                     }
 
-                    row++; //Check the same row again, as the shifting may cause it to be full again.
-                
+                    row++; // Check same row again
                 }
             }
         }
 
-        return currentBoard; //Return the updated board.
+        rowsClearedLast = rowsCleared;
+
+        if (!foundAnyFullRow) {
+            rowsClearedLast = 0;
+            return board;
+        }
+
+        return currentBoard;
     }
 
     //Metode til at sende til clienten
     private void toClient(String msg) {
-        synchronized (netout) { //gør toCLient tråd sikker
+        synchronized (netout) {
             System.out.println("to client: " + msg);
             netout.println(msg);
             netout.flush();
