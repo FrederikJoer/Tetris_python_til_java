@@ -9,6 +9,7 @@ public class DisplayBoard extends JFrame {
 
     // Simple GUI components
     private JTextField highScoreField;
+    private JTextField scoreField;
     private JTextField statusField;
     private JPanel boardPanel;
     private JLabel[][] boardCells;
@@ -26,18 +27,25 @@ public class DisplayBoard extends JFrame {
 
         setupGUI();
     }
-
+    
     private void setupGUI() {
-
+    
         //Create the window as a border-layout.
         setTitle("Tetris");
         setLayout(new BorderLayout());
 
+        
+        JPanel topPanel = new JPanel(new GridLayout(2, 1));
         //Create the high-score field
-        JPanel topPanel = new JPanel();
-        highScoreField = new JTextField("High Score: ", 20);
+        highScoreField = new JTextField("High score: ", 20);
         highScoreField.setEditable(false);
-        topPanel.add(highScoreField, BorderLayout.NORTH);
+        topPanel.add(highScoreField);
+
+        //Create score field
+        scoreField = new JTextField("Score: ", 20);
+        scoreField.setEditable(false);
+        topPanel.add(scoreField);
+
         add(topPanel, BorderLayout.NORTH);
 
         //Create board panel with cells
@@ -125,6 +133,8 @@ public class DisplayBoard extends JFrame {
 
                 System.out.println("DEBUG: Received from server - Welcome: " + welcome);
                 System.out.println("DEBUG: Received from server - EnterName: " + enterName);
+                
+                //Send user ID. If it exists, send it to server. If not, create it and send it.
 
                 //Show the welcome-window.
                 showWelcome(); 
@@ -137,6 +147,8 @@ public class DisplayBoard extends JFrame {
 
         connectionThread.start(); //Start thread
     }
+
+    
 
     private void showWelcome() {
         //Create welcome-window.
@@ -224,25 +236,31 @@ public class DisplayBoard extends JFrame {
         // To set the score
         } else if (serverMessage.startsWith("SCORE")) {
             System.out.println("DEBUG: Score message detected: " + serverMessage);
-            highScoreField.setText("SCORE: " + serverMessage.substring(5).trim());
+            scoreField.setText("SCORE: " + serverMessage.substring(5));
+        //Set the high score
+        } else if (serverMessage.startsWith("HIGHSCORE")) {
+            //Updates the log file.
+            highScoreField.setText(serverMessage);
+
         //To set the status-field. 
         } else if (serverMessage.startsWith("GAME OVER")) {
             System.out.println("DEBUG: Game over message detected"); 
-            statusField.setText(serverMessage);
-        } else {
+            statusField.setText("SCORE: " + serverMessage.substring(10));
+        } else {    
             System.out.println("DEBUG: Unknown message format");
         }
     }
 
     //Updates the board in the GUI
     private void updateBoard(String serverMessage) {
-        String board = serverMessage.substring(9);
+        String board = serverMessage.substring(10);
         System.out.println("Setting board: " + board);
 
         //Iterates over every 'block' in the GUI, and sets the color based on the board-string from the server.
         for (int i = 0; i < 200; i++) {
-            int row = i / 10;  // Integer division gives row
-            int col = i % 10;  // Modulo gives column 
+            int row = i / 10;  // Gives the row
+            int col = (i % 10);  // Gives the column
+           
             if (row < 20 && col < 10) {
                 char cell = board.charAt(i);
             
