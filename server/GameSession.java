@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Scanner;
@@ -92,6 +93,8 @@ public class GameSession {
             } else {
                 toClient("UNKNOWN START");
             }
+
+            toClient(getLeaderboard());
         }
 
         board = gameBoard.makeBoard();
@@ -399,4 +402,30 @@ public class GameSession {
             sock.close();
         } catch (Exception e) {}
     }
+
+    private String getLeaderboard() {
+    StringBuilder leaderboard = new StringBuilder();
+    leaderboard.append("LEADERBOARD:");
+    
+    try {
+        File file = new File("top10.txt");
+        if (!file.exists()) {
+            return "LEADERBOARD: No scores yet";
+        }
+        
+        try (Scanner scanner = new Scanner(file)) { // Automatically closes scanner
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                //line = line.substring(11);
+                leaderboard.append(line).append(";"); //Seperate lines with ;
+            }
+        }
+        
+    } catch (Exception e) {
+        System.err.println("ERROR WHEN LOADING LEADERBOARD: " + e.getMessage());
+        return "LEADERBOARD: ERROR";
+    }
+    
+    return leaderboard.toString();
+}
 }

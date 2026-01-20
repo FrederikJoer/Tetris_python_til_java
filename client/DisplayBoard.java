@@ -267,10 +267,11 @@ public class DisplayBoard extends JFrame {
         //To set the status-field. 
         } else if (serverMessage.startsWith("GAME OVER")) {
             System.out.println("DEBUG: Game over message detected"); 
-            statusField.setText("GAME OVER: " + serverMessage.substring(10));
+            statusField.setText(serverMessage);
             scoreField.setBackground(Color.GREEN);
         // Set leaderboard 
         } else if (serverMessage.startsWith("LEADERBOARD")) {
+            serverMessage = serverMessage.replaceAll(";", "\n");
             leaderboardArea.setText(serverMessage);
             leaderboardArea.setCaretPosition(0); //Scroll to the top
         } else {    
@@ -317,5 +318,3 @@ public class DisplayBoard extends JFrame {
         pieceColors[6] = Color.RED;       
     }
 }
-
-//ajksdnaksjdn
