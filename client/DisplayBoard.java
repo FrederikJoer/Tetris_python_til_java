@@ -259,7 +259,7 @@ public class DisplayBoard extends JFrame {
         } else if (serverMessage.startsWith("PIECE")) {
             System.err.println("Piece detected: " + serverMessage);
             String pieceString = serverMessage.substring(serverMessage.lastIndexOf(" ") + 1);
-            currentPieceType = Integer.parseInt(pieceString);
+            currentPieceType = Integer.parseInt(pieceString) -1;
             System.out.println("Current piece set to: " + currentPieceType);
         } else if (serverMessage.startsWith("SCORE")) {
             System.out.println("DEBUG: Score message detected: " + serverMessage);
@@ -289,22 +289,15 @@ public class DisplayBoard extends JFrame {
         String board = serverMessage.substring(10);
         System.out.println("Setting board: " + board);
 
-        //Iterates over every 'block' in the GUI, and sets the color based on the board-string from the server.
         for (int i = 0; i < 200; i++) {
-            int row = i / 10;  // Gives the row
-            int col = (i % 10);  // Gives the column
+            int row = i / 10;
+            int col = i % 10;
 
             if (row < 20 && col < 10) {
                 char cell = board.charAt(i);
 
                 if (cell == 'X') {
-                    try {
-                        boardCells[row][col].setBackground(pieceColors[currentPieceType]);
-                    } catch (Exception e) {
-                        boardCells[row][col].setBackground(Color.RED);
-                    }
-                } else if (cell >= '0' && cell <= '6') {
-                    boardCells[row][col].setBackground(pieceColors[cell - '0']);
+                    boardCells[row][col].setBackground(pieceColors[currentPieceType]);
                 } else if (cell >= '1' && cell <= '7') {
                     boardCells[row][col].setBackground(pieceColors[cell - '1']);
                 } else {
@@ -315,15 +308,17 @@ public class DisplayBoard extends JFrame {
     }
 
 
+
     private void initializePieceColors() {
         pieceColors = new Color[7];
-        pieceColors[0] = Color.CYAN;      
-        pieceColors[1] = Color.BLUE;      
-        pieceColors[2] = Color.ORANGE;    
-        pieceColors[3] = Color.YELLOW;    
-        pieceColors[4] = Color.GREEN;    
-        pieceColors[5] = Color.MAGENTA;   
-        pieceColors[6] = Color.RED;       
+
+        pieceColors[0] = new Color(0, 240, 240);
+        pieceColors[1] = Color.MAGENTA;
+        pieceColors[2] = Color.GREEN;
+        pieceColors[3] = Color.RED; 
+        pieceColors[4] = Color.BLUE;
+        pieceColors[5] = Color.ORANGE;       
+        pieceColors[6] = Color.YELLOW;           
     }
 
 }
