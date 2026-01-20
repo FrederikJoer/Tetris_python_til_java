@@ -114,6 +114,8 @@ public class DisplayBoard extends JFrame {
                     sendCommand("SOFT");
                 } else if (keyCode == KeyEvent.VK_SPACE) {
                     sendCommand("HARD");
+                } else if (keyCode == KeyEvent.VK_SHIFT) {
+                    sendCommand("HOLD");
                 }
             }           
         });
