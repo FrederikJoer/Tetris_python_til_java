@@ -212,6 +212,53 @@ public class DisplayBoard extends JFrame {
         welcomeWindow.setVisible(true); 
     }
 
+    private void OpenGameOverWindow() {
+        JDialog gameOverWindow = new JDialog(this, "GAME OVER", true);
+        gameOverWindow.setLayout(new GridLayout(4, 1, 10, 10));
+        gameOverWindow.setSize(300, 200);
+        gameOverWindow.setLocationRelativeTo(this);
+
+        JLabel title = new JLabel("GAME OVER");
+        JLabel scoreLabel = new JLabel(scoreField.getText());
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        JButton playAgain = new JButton("Play Again");
+        JButton exit = new JButton("Exit");
+        buttonPanel.add(playAgain);
+        buttonPanel.add(exit);
+
+        playAgain.addActionListener(e -> {
+            gameOverWindow.dispose();
+            restartGame();
+        });
+        
+        exit.addActionListener(e -> {
+            gameOverWindow.dispose();
+            System.exit(0);
+        });
+
+        gameOverWindow.add(title);
+        gameOverWindow.add(scoreLabel);
+        gameOverWindow.add(new JLabel()); 
+        gameOverWindow.add(buttonPanel);
+
+        gameOverWindow.setVisible(true);
+    }
+
+    private void restartGame() {
+        scoreField.setText("");
+        
+        // Clear the board
+        for (int row = 0; row < 20; row++) {
+            for (int col = 0; col < 10; col++) {
+                boardCells[row][col].setBackground(Color.WHITE);
+            }
+        }
+
+        sendCommand("RESTART");
+
+    }
+
     private void startGame(String playerName) {
         //Thread for the game.
         Thread gameThread = new Thread(() -> {
@@ -268,10 +315,9 @@ public class DisplayBoard extends JFrame {
         } else if (serverMessage.startsWith("HIGHSCORE")) {
             highScoreField.setText(serverMessage);
         //To set the status-field. 
-        } else if (serverMessage.startsWith("GAME OVER")) {
+        } else if (serverMessage.startsWith("GAMEOVER")) {
             System.out.println("DEBUG: Game over message detected"); 
-            statusField.setText("GAME OVER: " + serverMessage.substring(10));
-            scoreField.setBackground(Color.GREEN);
+            OpenGameOverWindow();
         // Set leaderboard 
         } else if (serverMessage.startsWith("LEADERBOARD")) {
             serverMessage = serverMessage.replaceAll(";", "\n");
@@ -322,4 +368,3 @@ public class DisplayBoard extends JFrame {
     }
 
 }
-//asdasd
