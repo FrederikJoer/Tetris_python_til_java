@@ -119,7 +119,7 @@ public class GameSession {
                 setCell(gx, gy);
             }
             toClient("BOARD IS: " + String.join("", board));
-            toClient("LEVEL " + level_int); // FIX: send initialt level
+            toClient("LEVEL " + level_int);
         }
 
         startInputThread(); //starter tråd til at lytte til client uden at blokere de to tick-threads
@@ -374,7 +374,6 @@ public class GameSession {
         }
     }
 
-    // FIX: level-beregning
     private int level(int totalRowsCleared) {
         return totalRowsCleared / 10;
     }
