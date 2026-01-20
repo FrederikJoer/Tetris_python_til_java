@@ -145,7 +145,7 @@ public class GameSession {
                             if (gameBoard.checkGameOver(board)) {
                                 activeGame = false;
                                 toClient("GAMEOVER");
-                                toClient("YOUR SCORE IS: " + score);
+                                toClient("SCORE IS: " + score);
                                 break;
                             }
 

@@ -366,5 +366,4 @@ public class DisplayBoard extends JFrame {
         pieceColors[5] = Color.ORANGE;       
         pieceColors[6] = Color.YELLOW;           
     }
-
 }
