@@ -153,7 +153,7 @@ public class GameSession {
 
                         if (collisionDown) {
                             //Locker boardet
-                            board = gameBoard.lockBoard(board); // lock først
+                            board = gameBoard.lockBoard(board, activePieceId); // lock først
                             board = fullrow(board); // fullrow sætter rowsClearedLast
 
                             if (rowsClearedLast > 0) {
@@ -486,7 +486,7 @@ public class GameSession {
 
     public void sendGameInfo(String[] board, int score, int activePiece, int nextActivePieceId) {
         toClient("BOARD IS: " + String.join("", board));
-        toClient(" PIECE IS: " + activePiece);
+        toClient(" PIECE IS: " + (activePiece - 1));
         toClient("SCORE IS: " + score);
         toClient("LEVEL " + level_int);
 

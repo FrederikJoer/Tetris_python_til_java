@@ -6,3 +6,7 @@ Player ID: null. Score: 0
 Player ID: Fred. Score: 0
 Player ID: F. Score: 360
 Player ID: Oliver. Score: 0
+Player ID: d. Score: 0
+Player ID: tissemand13. Score: 0
+Player ID: 1. Score: 0
+Player ID: n. Score: 0

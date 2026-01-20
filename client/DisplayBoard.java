@@ -30,6 +30,8 @@ public class DisplayBoard extends JFrame {
         this.netin = netin;
         this.netout = netout;
 
+        initializePieceColors();
+
         setupGUI();
     }
     
@@ -282,33 +284,33 @@ public class DisplayBoard extends JFrame {
 
     //Updates the board in the GUI
     private void updateBoard(String serverMessage) {
-        String board = serverMessage.substring(10);
-        System.out.println("Setting board: " + board);
+            String board = serverMessage.substring(10);
+            System.out.println("Setting board: " + board);
 
-        //Iterates over every 'block' in the GUI, and sets the color based on the board-string from the server.
-        for (int i = 0; i < 200; i++) {
-            int row = i / 10;  // Gives the row
-            int col = (i % 10);  // Gives the column
-           
-            if (row < 20 && col < 10) {
-                char cell = board.charAt(i);
+            //Iterates over every 'block' in the GUI, and sets the color based on the board-string from the server.
+            for (int i = 0; i < 200; i++) {
+                int row = i / 10;  // Gives the row
+                int col = (i % 10);  // Gives the column
             
-                if (cell == 'X') {
-                    try {
-                        boardCells[row][col].setBackground(pieceColors[currentPieceType]);
-                    } catch (Exception e) {
-                        boardCells[row][col].setBackground(Color.RED);
+                if (row < 20 && col < 10) {
+                    char cell = board.charAt(i);
+                
+                    if (cell == 'X') {
+                        try {
+                            boardCells[row][col].setBackground(pieceColors[currentPieceType]);
+                        } catch (Exception e) {
+                            boardCells[row][col].setBackground(Color.RED);
+                        }
+                    } else if (cell >= '1' && cell <= '7') {
+                        boardCells[row][col].setBackground(pieceColors[cell - '1']);
+                    } else {
+                        boardCells[row][col].setBackground(Color.WHITE);
                     }
-                } else if (cell =='#'){
-                    boardCells[row][col].setBackground(Color.BLACK);
-                } else {
-                    boardCells[row][col].setBackground(Color.WHITE);
                 }
             }
-        }
     }
 
-     private void initializePieceColors() {
+    private void initializePieceColors() {
         pieceColors = new Color[7];
         pieceColors[0] = Color.CYAN;      
         pieceColors[1] = Color.BLUE;      
@@ -318,4 +320,5 @@ public class DisplayBoard extends JFrame {
         pieceColors[5] = Color.MAGENTA;   
         pieceColors[6] = Color.RED;       
     }
+
 }

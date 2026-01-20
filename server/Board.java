@@ -13,7 +13,8 @@ public class Board {
         if (gy >= 20) {
             return true;
         }
-        if (board[gy * 10 + gx].equals("#")) {
+        // ÆNDRET: tjek for 1..7 i stedet for "#"
+        if (!board[gy * 10 + gx].equals(".") && !board[gy * 10 + gx].equals("X")) {
             return true;
         }
         return false;
@@ -22,17 +23,19 @@ public class Board {
     public boolean collisionWall(String[] board, int gx, int gy) {
         if (gx < 0 || gx >= 10) {
             return true;
-        } if (board[gy * 10 + gx].equals("#")) {
+        }
+        // ÆNDRET: tjek for 1..7 i stedet for "#"
+        if (!board[gy * 10 + gx].equals(".") && !board[gy * 10 + gx].equals("X")) {
             return true;
         }
         else return false;
     }
 
-    public String[] lockBoard(String[] board) {
+    public String[] lockBoard(String[] board, int activePieceID) {
         String[] lockedBoard = board.clone();
         for (int i = 0; i < board.length; i++) {
             if (board[i].equals("X")) {
-                lockedBoard[i] = "#";
+                lockedBoard[i] = String.valueOf(activePieceID);
             }
         }
         return lockedBoard;
@@ -40,7 +43,8 @@ public class Board {
 
     public boolean checkGameOver(String[] board) {
         for (int x = 0; x < 10; x++) {
-            if (board[x].equals("#")) { // index 0..9 er række 0
+            // ÆNDRET: tjek for 1..7 i stedet for "#"
+            if (!board[x].equals(".") && !board[x].equals("X")) {
                 return true;
             }
         }
