@@ -22,7 +22,10 @@ public class Board {
     public boolean collisionWall(String[] board, int gx, int gy) {
         if (gx < 0 || gx >= 10) {
             return true;
-        } else return false;
+        } if (board[gy * 10 + gx].equals("#")) {
+            return true;
+        }
+        else return false;
     }
 
     public String[] lockBoard(String[] board) {
@@ -35,8 +38,7 @@ public class Board {
         return lockedBoard;
     }
 
-    public boolean checkGameOver(String[] board, int gy) {
-        // FIX: game over hvis øverste række (række 0) indeholder locked '#'
+    public boolean checkGameOver(String[] board) {
         for (int x = 0; x < 10; x++) {
             if (board[x].equals("#")) { // index 0..9 er række 0
                 return true;

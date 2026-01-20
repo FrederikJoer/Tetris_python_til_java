@@ -44,7 +44,7 @@ public class DisplayBoard extends JFrame {
         highScoreField.setEditable(false);
         topPanel.add(highScoreField);
         
-        JTextField scoreField = new JTextField("Score: ", 15);
+        scoreField = new JTextField("Score: ", 15);
         scoreField.setEditable(false);
         topPanel.add(scoreField);
         
@@ -260,7 +260,7 @@ public class DisplayBoard extends JFrame {
             System.out.println("Current piece set to: " + currentPieceType);
         } else if (serverMessage.startsWith("SCORE")) {
             System.out.println("DEBUG: Score message detected: " + serverMessage);
-            scoreField.setText("SCORE: " + serverMessage.substring(5));
+            scoreField.setText(serverMessage);
         //Set the high score
         } else if (serverMessage.startsWith("HIGHSCORE")) {
             highScoreField.setText(serverMessage);
@@ -273,6 +273,8 @@ public class DisplayBoard extends JFrame {
         } else if (serverMessage.startsWith("LEADERBOARD")) {
             leaderboardArea.setText(serverMessage);
             leaderboardArea.setCaretPosition(0); //Scroll to the top
+        } else if(serverMessage.startsWith("LEVEL")) {
+            statusField.setText(serverMessage);
         } else {    
             System.out.println("DEBUG: Unknown message format");
         }
