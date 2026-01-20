@@ -248,6 +248,7 @@ public class DisplayBoard extends JFrame {
 
     //Method to process message from server
     private void processMessage(String serverMessage) {
+        serverMessage = serverMessage.trim(); // FIX: så " PIECE..." også matches som "PIECE..."
         System.out.println("DEBUG: Processing message: " + serverMessage);
         
         // To set the Board in the GUI.
@@ -257,7 +258,7 @@ public class DisplayBoard extends JFrame {
         // To set the score
         } else if (serverMessage.startsWith("PIECE")) {
             System.err.println("Piece detected: " + serverMessage);
-            String pieceString = serverMessage.substring(6); //Assuming "PIECE X"
+            String pieceString = serverMessage.substring(serverMessage.lastIndexOf(" ") + 1);
             currentPieceType = Integer.parseInt(pieceString);
             System.out.println("Current piece set to: " + currentPieceType);
         } else if (serverMessage.startsWith("SCORE")) {
@@ -273,6 +274,7 @@ public class DisplayBoard extends JFrame {
             scoreField.setBackground(Color.GREEN);
         // Set leaderboard 
         } else if (serverMessage.startsWith("LEADERBOARD")) {
+            serverMessage = serverMessage.replaceAll(";", "\n");
             leaderboardArea.setText(serverMessage);
             leaderboardArea.setCaretPosition(0); //Scroll to the top
         } else if(serverMessage.startsWith("LEVEL")) {
@@ -301,11 +303,14 @@ public class DisplayBoard extends JFrame {
                         } catch (Exception e) {
                             boardCells[row][col].setBackground(Color.RED);
                         }
+                    } else if (cell >= '0' && cell <= '6') {
+                        boardCells[row][col].setBackground(pieceColors[cell - '0']);
                     } else if (cell >= '1' && cell <= '7') {
                         boardCells[row][col].setBackground(pieceColors[cell - '1']);
                     } else {
                         boardCells[row][col].setBackground(Color.WHITE);
                     }
+
                 }
             }
     }
