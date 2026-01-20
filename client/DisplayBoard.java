@@ -30,6 +30,8 @@ public class DisplayBoard extends JFrame {
         this.netin = netin;
         this.netout = netout;
 
+        initializePieceColors();
+
         setupGUI();
     }
     
@@ -44,7 +46,7 @@ public class DisplayBoard extends JFrame {
         highScoreField.setEditable(false);
         topPanel.add(highScoreField);
         
-        JTextField scoreField = new JTextField("Score: ", 15);
+        scoreField = new JTextField("Score: ", 15);
         scoreField.setEditable(false);
         topPanel.add(scoreField);
         
@@ -246,6 +248,7 @@ public class DisplayBoard extends JFrame {
 
     //Method to process message from server
     private void processMessage(String serverMessage) {
+        serverMessage = serverMessage.trim(); // FIX: så " PIECE..." også matches som "PIECE..."
         System.out.println("DEBUG: Processing message: " + serverMessage);
         
         // To set the Board in the GUI.
@@ -255,12 +258,12 @@ public class DisplayBoard extends JFrame {
         // To set the score
         } else if (serverMessage.startsWith("PIECE")) {
             System.err.println("Piece detected: " + serverMessage);
-            String pieceString = serverMessage.substring(6); //Assuming "PIECE X"
+            String pieceString = serverMessage.substring(serverMessage.lastIndexOf(" ") + 1);
             currentPieceType = Integer.parseInt(pieceString);
             System.out.println("Current piece set to: " + currentPieceType);
         } else if (serverMessage.startsWith("SCORE")) {
             System.out.println("DEBUG: Score message detected: " + serverMessage);
-            scoreField.setText("SCORE: " + serverMessage.substring(5));
+            scoreField.setText(serverMessage);
         //Set the high score
         } else if (serverMessage.startsWith("HIGHSCORE")) {
             highScoreField.setText(serverMessage);
@@ -271,8 +274,11 @@ public class DisplayBoard extends JFrame {
             scoreField.setBackground(Color.GREEN);
         // Set leaderboard 
         } else if (serverMessage.startsWith("LEADERBOARD")) {
+            serverMessage = serverMessage.replaceAll(";", "\n");
             leaderboardArea.setText(serverMessage);
             leaderboardArea.setCaretPosition(0); //Scroll to the top
+        } else if(serverMessage.startsWith("LEVEL")) {
+            statusField.setText(serverMessage);
         } else {    
             System.out.println("DEBUG: Unknown message format");
         }
@@ -280,33 +286,36 @@ public class DisplayBoard extends JFrame {
 
     //Updates the board in the GUI
     private void updateBoard(String serverMessage) {
-        String board = serverMessage.substring(10);
-        System.out.println("Setting board: " + board);
+            String board = serverMessage.substring(10);
+            System.out.println("Setting board: " + board);
 
-        //Iterates over every 'block' in the GUI, and sets the color based on the board-string from the server.
-        for (int i = 0; i < 200; i++) {
-            int row = i / 10;  // Gives the row
-            int col = (i % 10);  // Gives the column
-           
-            if (row < 20 && col < 10) {
-                char cell = board.charAt(i);
+            //Iterates over every 'block' in the GUI, and sets the color based on the board-string from the server.
+            for (int i = 0; i < 200; i++) {
+                int row = i / 10;  // Gives the row
+                int col = (i % 10);  // Gives the column
             
-                if (cell == 'X') {
-                    try {
-                        boardCells[row][col].setBackground(pieceColors[currentPieceType]);
-                    } catch (Exception e) {
-                        boardCells[row][col].setBackground(Color.RED);
+                if (row < 20 && col < 10) {
+                    char cell = board.charAt(i);
+                
+                    if (cell == 'X') {
+                        try {
+                            boardCells[row][col].setBackground(pieceColors[currentPieceType]);
+                        } catch (Exception e) {
+                            boardCells[row][col].setBackground(Color.RED);
+                        }
+                    } else if (cell >= '0' && cell <= '6') {
+                        boardCells[row][col].setBackground(pieceColors[cell - '0']);
+                    } else if (cell >= '1' && cell <= '7') {
+                        boardCells[row][col].setBackground(pieceColors[cell - '1']);
+                    } else {
+                        boardCells[row][col].setBackground(Color.WHITE);
                     }
-                } else if (cell =='#'){
-                    boardCells[row][col].setBackground(Color.BLACK);
-                } else {
-                    boardCells[row][col].setBackground(Color.WHITE);
+
                 }
             }
-        }
     }
 
-     private void initializePieceColors() {
+    private void initializePieceColors() {
         pieceColors = new Color[7];
         pieceColors[0] = Color.CYAN;      
         pieceColors[1] = Color.BLUE;      
@@ -316,4 +325,5 @@ public class DisplayBoard extends JFrame {
         pieceColors[5] = Color.MAGENTA;   
         pieceColors[6] = Color.RED;       
     }
+
 }
