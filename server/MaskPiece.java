@@ -70,27 +70,28 @@ public class MaskPiece {
             // . . . .  3
         } 
         else if (rotationIndex == 1) {
-            return new int[][] { {0,0}, {0,1}, {0,2}, {0,3} }; 
-            // X . . .  0
-            // X . . .  1
-            // X . . .  2
-            // X . . .  3
+            return new int[][] { {2,0}, {2,1}, {2,2}, {2,3} }; 
+            // 0 1 2 3
+            // . . X .  0
+            // . . X .  1
+            // . . X .  2
+            // . . X .  3
         } 
         else if (rotationIndex == 2) {
             return new int[][] { {0,0}, {1,0}, {2,0}, {3,0} }; 
             // 0 1 2 3
-            // X X X X  0
-            // . . . .  1
+            // . . . .  0
+            // X X X X  1
             // . . . .  2
             // . . . .  3
         } 
         else if (rotationIndex == 3) {
-            return new int[][] { {0,0}, {0,1}, {0,2}, {0,3} }; 
+            return new int[][] { {1,0}, {1,1}, {1,2}, {1,3} }; 
             // 0 1 2 3
-            // X . . .  0
-            // X . . .  1
-            // X . . .  2
-            // X . . .  3
+            // . X . .  0
+            // . X . .  1
+            // . X . .  2
+            // . X . .  3
         }
 
         return null;
@@ -143,18 +144,19 @@ public class MaskPiece {
             // . . . .  3
         } 
         else if (rotationIndex == 1) {
-            return new int[][] { {0,0}, {0,1}, {1,1}, {1,2} }; 
-            // X . . .  0
-            // X X . .  1
-            // . X . .  2
+            return new int[][] { {1,0}, {1,1}, {2,1}, {2,2} }; 
+            // 0 1 2 3
+            // . X . .  0
+            // . X X .  1
+            // . . X .  2
             // . . . .  3
         } 
         else if (rotationIndex == 2) {
-            return new int[][] { {0,1}, {1,1}, {1,0}, {2,0} }; 
+            return new int[][] { {0,2}, {1,2}, {1,1}, {2,1} }; 
             // 0 1 2 3
-            // . X X .  0
-            // X X . .  1
-            // . . . .  2
+            // . . . .  0
+            // . X X .  1
+            // X X . .  2
             // . . . .  3
         } 
         else if (rotationIndex == 3) {
@@ -179,19 +181,19 @@ public class MaskPiece {
             // . . . .  3
         } 
         else if (rotationIndex == 1) {
-            return new int[][] { {1,0}, {0,1}, {1,1}, {0,2} }; 
+            return new int[][] { {1,1}, {1,2}, {2,0}, {2,1} }; 
             // 0 1 2 3
-            // . X . .  0
-            // X X . .  1
-            // X . . .  2
+            // . . X .  0
+            // . X X .  1
+            // . X . .  2
             // . . . .  3
         } 
         else if (rotationIndex == 2) {
-            return new int[][] { {0,0}, {1,0}, {1,1}, {2,1} }; 
+            return new int[][] { {0,1}, {1,1}, {1,2}, {2,2} }; 
             // 0 1 2 3
-            // X X . .  0
-            // . X X .  1
-            // . . . .  2
+            // . . . .  0
+            // X X . .  1
+            // . X X .  2
             // . . . .  3
         } 
         else if (rotationIndex == 3) {
@@ -208,34 +210,35 @@ public class MaskPiece {
 
     public int[][] lLeft(int rotationIndex) {
         if (rotationIndex == 0) {
-            return new int[][] { {2,0}, {2,1}, {2,2}, {1,2} }; 
+            return new int[][] { {0,0}, {0,1}, {1,1}, {2,1} }; 
             // 0 1 2 3
-            // . . X .  0
-            // . . X .  1
-            // . X X .  2
+            // X . . .  0
+            // X X X .  1
+            // . . . .  2
             // . . . .  3
         } 
         else if (rotationIndex == 1) {
-            return new int[][] { {0,1}, {1,1}, {2,1}, {2,2} }; 
-            // 0 1 2 3
-            // . . . .  0
-            // X X X .  1
-            // . . X .  2
-            // . . . .  3
-        } 
-        else if (rotationIndex == 2) {
-            return new int[][] { {1,0}, {1,1}, {1,2}, {2,0} };
+            return new int[][] { {1,0}, {1,1}, {1,2}, {2,0} }; 
             // 0 1 2 3
             // . X X .  0
             // . X . .  1
             // . X . .  2
             // . . . .  3
         } 
-        else if (rotationIndex == 3) {
-            return new int[][] { {0,1}, {0,2}, {1,2}, {2,2} }; 
+        else if (rotationIndex == 2) {
+            return new int[][] { {0,1}, {1,1}, {2,1}, {2,2} };
+            // 0 1 2 3
             // . . . .  0
-            // X . . .  1
-            // X X X .  2
+            // X X X .  1
+            // . . X .  2
+            // . . . .  3
+        } 
+        else if (rotationIndex == 3) {
+            return new int[][] { {1,0}, {1,1}, {1,2}, {0,2} }; 
+            // 0 1 2 3
+            // . X . .  0
+            // . X . .  1
+            // X X . .  2
             // . . . .  3
         }
 
@@ -244,35 +247,35 @@ public class MaskPiece {
 
     public int[][] lRight(int rotationIndex) {
         if (rotationIndex == 0) {
-            return new int[][] { {1,0}, {1,1}, {1,2}, {2,2} };
+            return new int[][] { {2,0}, {0,1}, {1,1}, {2,1} }; 
+            // 0 1 2 3
+            // . . X .  0
+            // X X X .  1
+            // . . . .  2
+            // . . . .  3
+        } 
+        else if (rotationIndex == 1) {
+            return new int[][] { {1,0}, {1,1}, {1,2}, {2,2} }; 
             // 0 1 2 3
             // . X . .  0
             // . X . .  1
             // . X X .  2
             // . . . .  3
         } 
-        else if (rotationIndex == 1) {
-            return new int[][] { {0,1}, {1,1}, {2,1}, {0,2} }; 
+        else if (rotationIndex == 2) {
+            return new int[][] { {0,1}, {1,1}, {2,1}, {0,2} };
             // 0 1 2 3
             // . . . .  0
             // X X X .  1
             // X . . .  2
             // . . . .  3
         } 
-        else if (rotationIndex == 2) {
-            return new int[][] { {1,0}, {2,0}, {2,1}, {2,2} };
-            // 0 1 2 3
-            // . X X .  0
-            // . . X .  1
-            // . . X .  2
-            // . . . .  3
-        } 
         else if (rotationIndex == 3) {
-            return new int[][] { {2,0}, {0,1}, {1,1}, {2,1} }; 
+            return new int[][] { {0,0}, {1,0}, {1,1}, {1,2} };
             // 0 1 2 3
-            // . . X .  0
-            // X X X .  1
-            // . . . .  2
+            // X X . .  0
+            // . X . .  1
+            // . X . .  2
             // . . . .  3
         }
 
