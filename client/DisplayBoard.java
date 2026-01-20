@@ -311,14 +311,14 @@ public class DisplayBoard extends JFrame {
 
     private void initializePieceColors() {
         pieceColors = new Color[7];
-
-        pieceColors[0] = new Color(0, 240, 240);
-        pieceColors[1] = Color.MAGENTA;
-        pieceColors[2] = Color.GREEN;
-        pieceColors[3] = Color.RED; 
-        pieceColors[4] = Color.BLUE;
-        pieceColors[5] = Color.ORANGE;       
-        pieceColors[6] = Color.YELLOW;           
+        pieceColors[0] = new Color(0, 240, 240); //cyan
+        pieceColors[1] = new Color(160, 0, 240); //purple
+        pieceColors[2] = new Color(0, 240, 0); //green
+        pieceColors[3] = new Color(240, 0, 0); //red
+        pieceColors[4] = new Color(0, 0, 240); //blue
+        pieceColors[5] = new Color(240, 160, 0); //orange
+        pieceColors[6] = new Color(240, 240, 0); //yellow
     }
+
 
 }
