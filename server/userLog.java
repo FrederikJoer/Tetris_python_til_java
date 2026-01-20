@@ -53,12 +53,15 @@ public class userLog {
             oldFile.delete();
             newFile.renameTo(oldFile);
 
+            userLog.Top10ToFile();
+
+
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static String[] top10() {
+    public static void Top10ToFile() {
 
         String[] topNames = new String[10];
         int[] topScores = new int[10];
@@ -70,6 +73,7 @@ public class userLog {
         }
 
         try {
+            // Læs playersLog.txt
             Scanner sc = new Scanner(new File("playersLog.txt"));
 
             while (sc.hasNextLine()) {
@@ -106,20 +110,22 @@ public class userLog {
 
             sc.close();
 
-        } catch (Exception e) {
+            // Skriv top10.txt
+            PrintWriter out = new PrintWriter(new FileWriter("top10.txt", false));
+
+            for (int i = 0; i < 10; i++) {
+                if (topScores[i] == -1) {
+                    out.println((i + 1) + ". .............................");
+                } else {
+                    out.println((i + 1) + ". " + topNames[i] + " - " + topScores[i]);
+                }
+            }
+
+            out.close();
+
+        } catch (IOException e) {
             e.printStackTrace();
         }
-
-        // byg output array
-        String[] result = new String[10];
-        for (int i = 0; i < 10; i++) {
-            if (topScores[i] == -1) {
-                result[i] = (i + 1) + ". .............................";
-            } else {
-                result[i] = (i + 1) + ". " + topNames[i] + " - " + topScores[i];
-            }
-        }
-
-        return result;
     }
+
 }

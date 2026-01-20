@@ -28,8 +28,8 @@ public class GameSession {
     public int score = 0;
 
     private final int normalGravityTick = 500;
-    private final int softGravityTick = 50;  
-    private int softFramesLeft = 0;            
+    private final int softGravityTick = 50;
+    private int softFramesLeft = 0;
 
     private final Object boardLock = new Object(); //lås til ændring af board
     private String[] board = null; //selve boardet
@@ -43,6 +43,9 @@ public class GameSession {
     public int rotationIndex = 0;
 
     private int rowsClearedLast = 0;
+
+    public int totalRowsCleared = 0;
+    public int level_int = 0;   
 
     public GameSession(Socket sock) {
         this.sock = sock;
@@ -60,11 +63,10 @@ public class GameSession {
     }
 
     public void run() {
-        System.out.println("GameSession kører for: " + sock);
-
         toClient("WELCOME TO TETRIS");
 
         chooseName = true;
+
         while (chooseName) {
             toClient("CHOOSE A NAME");
             playerName = fromClient();
@@ -117,6 +119,7 @@ public class GameSession {
                 setCell(gx, gy);
             }
             toClient("BOARD IS: " + String.join("", board));
+            toClient("LEVEL " + level_int); // FIX: send initialt level
         }
 
         startInputThread(); //starter tråd til at lytte til client uden at blokere de to tick-threads
@@ -132,12 +135,20 @@ public class GameSession {
                     synchronized (boardLock) {
                         boolean collisionDown = false;
 
-                        // tjekker collision for alle felter i y++
                         for (int[] cord : mask) {
                             int gx = pieceX + cord[0];
-                            int gy = (pieceY + 1) + cord[1];
 
-                            if (gameBoard.collisionBottom(board, gx, gy)) {
+                            int gyNow = pieceY + cord[1];
+                            int gyNext = (pieceY + 1) + cord[1];
+
+                            if (gameBoard.checkGameOver(board, gyNow)) {
+                                activeGame = false;
+                                toClient("GAMEOVER");
+                                toClient("YOUR SCORE IS: " + score);
+                                break;
+                            }
+
+                            if (gameBoard.collisionBottom(board, gx, gyNext)) {
                                 collisionDown = true;
                             }
                         }
@@ -145,14 +156,20 @@ public class GameSession {
                         if (collisionDown) {
                             //Locker boardet
                             board = gameBoard.lockBoard(board); // lock først
-
-                            // clear full rows her (kun ved collision) + opdater score stabilt
                             board = fullrow(board); // fullrow sætter rowsClearedLast
 
                             if (rowsClearedLast > 0) {
-                                score += scoreForRows(rowsClearedLast);
 
-                                // FIX: opdater log når score ændres
+                                totalRowsCleared = totalRowsCleared + rowsClearedLast; // FIX: opdater total
+
+                                int oldLevel = level_int;       
+                                level_int = level(totalRowsCleared);
+
+                                if (level_int != oldLevel) {
+                                    toClient("LEVEL " + level_int);
+                                }
+
+                                score += scoreForRows(rowsClearedLast); // behold din score som den er
                                 log.main(playerName, score); // FIX
                             }
 
@@ -190,7 +207,7 @@ public class GameSession {
                         }
                     }
 
-                    Thread.sleep(gravityTick); // ingen one-shot reset her (ellers bliver soft hakkende)
+                    Thread.sleep(gravityTick);
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -218,11 +235,48 @@ public class GameSession {
                         }
 
                         if (input != null) {
-                            if (input.equals("SOFT")) {
+
+                            boolean doSoft = input.contains("SOFT");
+                            boolean doLeft = input.contains("LEFT");
+                            boolean doRight = input.contains("RIGHT");
+                            boolean doRotate = input.contains("ROTATE");
+
+                            if (doSoft) {
                                 gravityTickSet("SOFT");
                             }
 
-                            if (input.equals("LEFT")) {
+                            if (doRotate) {
+                                int nextRotationIndex = (rotationIndex + 1) % 4;
+
+                                int[][] nextMask = activeMaskPiece.getMask(activePieceId, nextRotationIndex);
+
+                                boolean canRotate = true;
+
+                                for (int[] cord : nextMask) {
+                                    int gx = pieceX + cord[0];
+                                    int gy = pieceY + cord[1];
+
+                                    if (gameBoard.collisionWall(board, gx, gy)) {
+                                        canRotate = false;
+                                        break;
+                                    }
+                                }
+
+                                if (canRotate) {
+                                    deleteOldPosition();
+
+                                    rotationIndex = nextRotationIndex;
+                                    mask = nextMask;
+
+                                    for (int[] cord : mask) {
+                                        int gx = pieceX + cord[0];
+                                        int gy = pieceY + cord[1];
+                                        setCell(gx, gy);
+                                    }
+                                }
+                            }
+
+                            if (doLeft && !doRight) {
                                 boolean collisionLeft = false;
 
                                 for (int[] cord : mask) {
@@ -246,7 +300,7 @@ public class GameSession {
                                 }
                             }
 
-                            if (input.equals("RIGHT")) {
+                            if (doRight && !doLeft) {
                                 boolean collisionRight = false;
 
                                 for (int[] cord : mask) {
@@ -261,37 +315,6 @@ public class GameSession {
                                 if (!collisionRight) {
                                     deleteOldPosition();
                                     pieceX = pieceX + 1;
-
-                                    for (int[] cord : mask) {
-                                        int gx = pieceX + cord[0];
-                                        int gy = pieceY + cord[1];
-                                        setCell(gx, gy);
-                                    }
-                                }
-                            }
-
-                            if (input.equals("ROTATE")) {
-                                int nextRotationIndex = (rotationIndex + 1) % 4;
-
-                                int[][] nextMask = activeMaskPiece.getMask(activePieceId, nextRotationIndex);
-
-                                boolean canRotate = true;
-
-                                for (int[] cord : nextMask) {
-                                    int gx = pieceX + cord[0];
-                                    int gy = pieceY + cord[1];
-
-                                    if (gameBoard.collisionWall(board, gx, gy)) {
-                                        canRotate = false;
-                                        break;
-                                    }
-                                }
-
-                                if (canRotate) {
-                                    deleteOldPosition();
-
-                                    rotationIndex = nextRotationIndex;
-                                    mask = nextMask;
 
                                     for (int[] cord : mask) {
                                         int gx = pieceX + cord[0];
@@ -328,7 +351,6 @@ public class GameSession {
                     break;
                 }
                 lastInput = input;
-                System.out.println("Client input: " + input);
             }
         }).start();
     }
@@ -352,18 +374,21 @@ public class GameSession {
         }
     }
 
+    // FIX: level-beregning
+    private int level(int totalRowsCleared) {
+        return totalRowsCleared / 10;
+    }
+
     // score tabel (1..5 rækker)
     private int scoreForRows(int rows) {
         if (rows == 1) {
-            return 100;
+            return 40;
         } else if (rows == 2) {
-            return 200;
+            return 100;
         } else if (rows == 3) {
             return 300;
         } else if (rows == 4) {
-            return 400;
-        } else if (rows == 5) {
-            return 500;
+            return 1200;
         }
         return 0;
     }
@@ -426,13 +451,11 @@ public class GameSession {
         return currentBoard;
     }
 
-
     public void sendGameInfo(String[] board, int score, int activePiece, int nextActivePieceId) {
         toClient("BOARD IS: " + String.join("", board) + " PIECE IS: " + activePiece);
         toClient("SCORE IS: " + score);
         //toClient("NEXT PIECE IS: " + nextActivePieceId);
     }
-
 
     //Metode til at sende til clienten
     private void toClient(String msg) {
