@@ -1,14 +1,15 @@
 import java.awt.*;
+import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
 import javax.swing.*;
 
-public class DisplayBoard_test extends JFrame {
+public class DisplayBoard extends JFrame {
 
     // Simple GUI components
-    private JTextArea boardArea;
     private JTextField highScoreField;
+    private JTextField scoreField;
     private JTextField statusField;
     private JPanel boardPanel;
     private JLabel[][] boardCells;
@@ -18,40 +19,49 @@ public class DisplayBoard_test extends JFrame {
     private Scanner netin;
     private PrintWriter netout;
 
+    // Declare variables for storing colors of the tetris-pieces.
+    private Color[] pieceColors;
+    private int currentPieceType;
+
     //Constructor. Sets layout
-    public DisplayBoard_test(Socket sock, Scanner netin, PrintWriter netout) {
+    public DisplayBoard(Socket sock, Scanner netin, PrintWriter netout) {
         this.sock = sock;
-        this.netout = netout;
         this.netin = netin;
+        this.netout = netout;
 
         setupGUI();
     }
-
+    
     private void setupGUI() {
 
         //Create the window as a border-layout.
         setTitle("Tetris");
         setLayout(new BorderLayout());
 
+        JPanel topPanel = new JPanel(new GridLayout(2, 1));
         //Create the high-score field
-        JPanel topPanel = new JPanel();
-        highScoreField = new JTextField("High Score: ", 20);
+        highScoreField = new JTextField("High score: ", 20);
         highScoreField.setEditable(false);
-        topPanel.add(highScoreField, BorderLayout.NORTH);
+        topPanel.add(highScoreField);
+
+        //Create score field
+        scoreField = new JTextField("Score: ", 20);
+        scoreField.setEditable(false);
+        topPanel.add(scoreField);
+
         add(topPanel, BorderLayout.NORTH);
 
         //Create board panel with cells
-        boardPanel = new JPanel(new GridLayout(20,10));
+        boardPanel = new JPanel(new GridLayout(20, 10, 1, 1));
+        boardPanel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
         boardCells = new JLabel[20][10];
 
         //Create the 20 cells and add them to the board panel.
         for (int row=0; row<20;row++) {
-            for (int col=0; col<20; row++) {
-                boardCells[row][col] = new JLabel(" ");
-                boardCells[row][col].setHorizontalAlignment(SwingConstants.CENTER);
-                boardCells[row][col].setBackground(Color.BLACK);
-                boardCells[row][col].setForeground(Color.WHITE);
-                boardCells[row][col].setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
+            for (int col=0; col<10; col++) {
+                boardCells[row][col] = new JLabel();
+                boardCells[row][col].setOpaque(true);
+                boardCells[row][col].setBackground(Color.WHITE);
                 boardPanel.add(boardCells[row][col]);
             }
         }
@@ -60,50 +70,88 @@ public class DisplayBoard_test extends JFrame {
 
         //Create status panel. Shows winner etc.
         JPanel bottomPanel = new JPanel();
-        statusField = new JTextField("Status: ", 30);
+        statusField = new JTextField("Status: ", 20);
         statusField.setEditable(false);
         bottomPanel.add(statusField, BorderLayout.SOUTH);
         add(bottomPanel, BorderLayout.SOUTH);
 
         // Set size etc.
-        setSize(500, 500);
+        setSize(300, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
+        //Add key bindings
+        setupKeyBindings();
+    }
+
+    //Method to setup the keys to enable controls.
+    private void setupKeyBindings() {
+        addKeyListener(new KeyAdapter() {
+            public void keyPressed(KeyEvent e) {
+                int keyCode = e.getKeyCode();
+                if (keyCode == KeyEvent.VK_LEFT) {
+                    sendCommand("LEFT");
+                } else if (keyCode == KeyEvent.VK_RIGHT) {
+                    sendCommand("RIGHT");
+                } else if (keyCode == KeyEvent.VK_UP) {
+                    sendCommand("ROTATE");
+                } else if (keyCode == KeyEvent.VK_DOWN) {
+                    sendCommand("SOFT");
+                }
+            }           
+        });
+        
+        // Make sure the frame can receive key events
+        setFocusable(true);
+        requestFocusInWindow();
     }
 
     //Starts the GUI and connects to the server.
+    public void sendCommand(String command) {
+        try {
+            if (netout != null) {
+                System.out.println("Sending move: "+ command);
+                netout.println(command);
+                netout.flush();
+            }
+        } catch (Exception e) {
+            System.err.println("Error printing command: " + e.getMessage());
+        }
+    }
+
     public void start() {
         setVisible(true);
         connectToServer();
     }
-
+    
     //Method for connecting to server.
     private void connectToServer() {
 
         //Thread for connection, so that it doesnt block GUI.
         Thread connectionThread = new Thread(() -> {
-             try {
-            //Reads two first lines from server. Should contain a welcome message and a name request.
-            String welcome = netin.nextLine();
-            String enterName = netin.nextLine();
+            try {
+                //Reads two first lines from server. Should contain a welcome message and a name request.
+                String welcome = netin.nextLine();
+                String enterName = netin.nextLine();
 
-            System.out.println("DEBUG: Received from server - Welcome: " + welcome);
-            System.out.println("DEBUG: Received from server - EnterName: " + enterName);
+                System.out.println("DEBUG: Received from server - Welcome: " + welcome);
+                System.out.println("DEBUG: Received from server - EnterName: " + enterName);
+                
+                //Send user ID. If it exists, send it to server. If not, create it and send it.
 
-            //Show the welcome-window.
-            SwingUtilities.invokeLater(() -> showWelcome()); 
+                //Show the welcome-window.
+                showWelcome(); 
 
             } catch (Exception e){
-                System.err.println("Error in server-connection: " + e.getMessage());
-                SwingUtilities.invokeLater(() -> 
-                    statusField.setText("Connection error: " + e.getMessage()));
+                System.err.println("Error in server-connection: " + e.getMessage()); 
+                statusField.setText("Connection error: " + e.getMessage());
             }
-
         });
 
         connectionThread.start(); //Start thread
     }
+
+    
 
     private void showWelcome() {
         //Create welcome-window.
@@ -114,7 +162,6 @@ public class DisplayBoard_test extends JFrame {
         
         // Create textlabels
         JLabel title = new JLabel("WELCOME TO TETRIS", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 16));
         JLabel name = new JLabel("ENTER YOUR NAME: ");
 
         //Create textfield to enter name in, and a start-button.
@@ -157,19 +204,17 @@ public class DisplayBoard_test extends JFrame {
                 //Send information to server in order to start game.
                 netout.println(playerName);
                 netout.println("START");
+                netout.flush();
 
                 //Listen to answers from server continuously
                 while (true) {
                     if (netin.hasNextLine()) {
                         String serverMessage = netin.nextLine();
-                        System.out.println("DEBUG: Received message: " + serverMessage);
+                        if (serverMessage.startsWith("BOARD")) {
+                            System.out.println("DEBUG: Recieved board: " + serverMessage);
+                        }
                         processMessage(serverMessage);
-                    } else {
-                        System.out.println("DEBUG: Server disconnected");
-                        SwingUtilities.invokeLater(() -> 
-                            statusField.setText("Server disconnected"));
-                        break;
-                    }
+                    } 
                 }
 
             } catch (Exception e) {
@@ -192,37 +237,65 @@ public class DisplayBoard_test extends JFrame {
             System.out.println("DEBUG: Board message detected");
             updateBoard(serverMessage);
         // To set the score
+        } else if (serverMessage.startsWith("PIECE")) {
+            System.err.println("Piece detected: " + serverMessage);
+            String pieceString = serverMessage.substring(6); //Assuming "PIECE X"
+            currentPieceType = Integer.parseInt(pieceString);
+            System.out.println("Current piece set to: " + currentPieceType);
         } else if (serverMessage.startsWith("SCORE")) {
             System.out.println("DEBUG: Score message detected: " + serverMessage);
-            SwingUtilities.invokeLater(() -> 
-                highScoreField.setText("SCORE: " + serverMessage.substring(5).trim()));
+            scoreField.setText("SCORE: " + serverMessage.substring(5));
+        //Set the high score
+        } else if (serverMessage.startsWith("HIGHSCORE")) {
+            //Updates the log file.
+            highScoreField.setText(serverMessage);
+
         //To set the status-field. 
         } else if (serverMessage.startsWith("GAME OVER")) {
-            System.out.println("DEBUG: Game over message detected");
-            SwingUtilities.invokeLater(() -> 
-                statusField.setText(serverMessage));
-        } else {
+            System.out.println("DEBUG: Game over message detected"); 
+            statusField.setText("GAME OVER: " + serverMessage.substring(10));
+            scoreField.setBackground(Color.GREEN);
+        } else {    
             System.out.println("DEBUG: Unknown message format");
-            SwingUtilities.invokeLater(() -> 
-                boardArea.setText("ERROR: Unknown message\n" + serverMessage));
         }
     }
 
+    //Updates the board in the GUI
     private void updateBoard(String serverMessage) {
-        String board = serverMessage.substring(8);
+        String board = serverMessage.substring(10);
+        System.out.println("Setting board: " + board);
 
-        if (board.length() >= 200) {
-            for (int row = 0; row < 20; row++) {
-                for (int col = 0; col < 10; col++) {
-                    int index = row * 10 + col;
-                    char cell = board.charAt(index);
-                    if (cell == 'x') {
-                        boardCells[row][col].setText("■");
-                    } else {
-                        boardCells[row][col].setText(" ");
+        //Iterates over every 'block' in the GUI, and sets the color based on the board-string from the server.
+        for (int i = 0; i < 200; i++) {
+            int row = i / 10;  // Gives the row
+            int col = (i % 10);  // Gives the column
+           
+            if (row < 20 && col < 10) {
+                char cell = board.charAt(i);
+            
+                if (cell == 'X') {
+                    try {
+                        boardCells[row][col].setBackground(pieceColors[currentPieceType]);
+                    } catch (Exception e) {
+                        boardCells[row][col].setBackground(Color.RED);
                     }
+                } else if (cell =='#'){
+                    boardCells[row][col].setBackground(Color.BLACK);
+                } else {
+                    boardCells[row][col].setBackground(Color.WHITE);
                 }
             }
         }
-}
+    }
+
+     private void initializePieceColors() {
+        pieceColors = new Color[7];
+        pieceColors[0] = Color.CYAN;      
+        pieceColors[1] = Color.BLUE;      
+        pieceColors[2] = Color.ORANGE;    
+        pieceColors[3] = Color.YELLOW;    
+        pieceColors[4] = Color.GREEN;    
+        pieceColors[5] = Color.MAGENTA;   
+        pieceColors[6] = Color.RED;       
+    }
 }
