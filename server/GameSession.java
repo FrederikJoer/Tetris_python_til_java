@@ -488,7 +488,7 @@ public class GameSession {
 
     public void sendGameInfo(String[] board, int score, int activePiece, int nextActivePieceId) {
         toClient("BOARD IS: " + String.join("", board));
-        toClient(" PIECE IS: " + (activePiece - 1));
+        toClient(" PIECE IS: " + (activePiece));
         toClient("SCORE IS: " + score);
         toClient("LEVEL " + level_int);
 
