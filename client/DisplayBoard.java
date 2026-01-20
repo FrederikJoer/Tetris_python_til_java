@@ -42,7 +42,7 @@ public class DisplayBoard extends JFrame {
 
         // Create top panel with both score fields
         JPanel topPanel = new JPanel();
-        highScoreField = new JTextField("High Score: ", 15);
+        highScoreField = new JTextField("Highscore: ", 15);
         highScoreField.setEditable(false);
         topPanel.add(highScoreField);
         
@@ -218,8 +218,8 @@ public class DisplayBoard extends JFrame {
         gameOverWindow.setSize(300, 200);
         gameOverWindow.setLocationRelativeTo(this);
 
-        JLabel title = new JLabel("GAME OVER");
-        JLabel scoreLabel = new JLabel(scoreField.getText());
+        JLabel title = new JLabel("GAME OVER", SwingConstants.CENTER);
+        JLabel scoreLabel = new JLabel(scoreField.getText(), SwingConstants.CENTER);
 
         JPanel buttonPanel = new JPanel(new FlowLayout());
         JButton playAgain = new JButton("Play Again");
@@ -228,8 +228,8 @@ public class DisplayBoard extends JFrame {
         buttonPanel.add(exit);
 
         playAgain.addActionListener(e -> {
-            gameOverWindow.dispose();
             restartGame();
+            gameOverWindow.dispose();
         });
         
         exit.addActionListener(e -> {
@@ -246,7 +246,7 @@ public class DisplayBoard extends JFrame {
     }
 
     private void restartGame() {
-        scoreField.setText("");
+        scoreField.setText(" ");
         
         // Clear the board
         for (int row = 0; row < 20; row++) {
