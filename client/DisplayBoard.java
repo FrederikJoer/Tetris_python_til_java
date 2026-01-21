@@ -386,13 +386,60 @@ public class DisplayBoard extends JFrame {
         welcomeWindow.setVisible(true);
     }
 
+    private void OpenGameOverWindow() {
+        JDialog gameOverWindow = new JDialog(this, "GAME OVER", true);
+        gameOverWindow.setLayout(new GridLayout(4, 1, 10, 10));
+        gameOverWindow.setSize(300, 200);
+        gameOverWindow.setLocationRelativeTo(this);
+
+        JLabel title = new JLabel("GAME OVER", SwingConstants.CENTER);
+        JLabel scoreLabel = new JLabel(scoreField.getText(), SwingConstants.CENTER);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        JButton playAgain = new JButton("Play Again");
+        JButton exit = new JButton("Exit");
+        buttonPanel.add(playAgain);
+        buttonPanel.add(exit);
+
+        playAgain.addActionListener(e -> {
+            restartGame();
+            gameOverWindow.dispose();
+        });
+        
+        exit.addActionListener(e -> {
+            gameOverWindow.dispose();
+            System.exit(0);
+        });
+
+        gameOverWindow.add(title);
+        gameOverWindow.add(scoreLabel);
+        gameOverWindow.add(new JLabel()); 
+        gameOverWindow.add(buttonPanel);
+
+        gameOverWindow.setVisible(true);
+    }
+
+    private void restartGame() {
+        scoreField.setText(" ");
+        
+        // Clear the board
+        for (int row = 0; row < 20; row++) {
+            for (int col = 0; col < 10; col++) {
+                boardCells[row][col].setBackground(Color.WHITE);
+            }
+        }
+
+        sendCommand("RESTART");
+
+    }
+
     private void startGame(String playerName) {
         //Thread for the game.
         Thread gameThread = new Thread(() -> {
 
             try {
                 System.out.println("DEBUG: Starting game for player: " + playerName);
-
+                
                 //Send information to server in order to start game.
                 netout.println(playerName);
                 netout.println("START");
@@ -406,12 +453,12 @@ public class DisplayBoard extends JFrame {
                             System.out.println("DEBUG: Recieved board: " + serverMessage);
                         }
                         processMessage(serverMessage);
-                    }
+                    } 
                 }
 
             } catch (Exception e) {
                 System.err.println("Connection error: " + e.getMessage());
-                SwingUtilities.invokeLater(() ->
+                SwingUtilities.invokeLater(() -> 
                     statusField.setText("Game error: " + e.getMessage()));
             }
 
@@ -454,11 +501,9 @@ public class DisplayBoard extends JFrame {
         } else if (serverMessage.startsWith("HIGHSCORE")) {
             highScoreField.setText(serverMessage);
 
-        } else if (serverMessage.startsWith("GAME OVER")) {
-            System.out.println("DEBUG: Game over message detected");
-            statusField.setText("GAME OVER: " + serverMessage.substring(10));
-            scoreField.setBackground(Color.GREEN);
-
+        } else if (serverMessage.startsWith("GAMEOVER")) {
+            System.out.println("DEBUG: Game over message detected"); 
+            OpenGameOverWindow();
         } else if (serverMessage.startsWith("LEADERBOARD")) {
             serverMessage = serverMessage.substring(12);
             serverMessage = serverMessage.replaceAll(";", "\n");
