@@ -457,7 +457,6 @@ public class DisplayBoard extends JFrame {
         }
     }
 
-    // Mini-panel opdatering (eksempel / test)
     private void updateMiniPanel(int serverMessageNext, int serverMessageHold) {
 
         if (nextCells == null || holdCells == null) {
