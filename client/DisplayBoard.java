@@ -338,9 +338,10 @@ public class DisplayBoard extends JFrame {
             scoreField.setBackground(Color.GREEN);
         // Set leaderboard 
         } else if (serverMessage.startsWith("LEADERBOARD")) {
-            serverMessage = serverMessage.replaceAll(";", "\n");
-            leaderboardArea.setText(serverMessage);
-            leaderboardArea.setCaretPosition(0); //Scroll to the top
+        serverMessage = serverMessage.substring(12);
+        serverMessage = serverMessage.replaceAll(";", "\n");
+        leaderboardArea.setText("LEADERBOARD\n" + serverMessage);
+        leaderboardArea.setCaretPosition(0); 
         } else if(serverMessage.startsWith("LEVEL")) {
             statusField.setText(serverMessage);
         } else {    
