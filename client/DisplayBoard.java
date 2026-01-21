@@ -37,6 +37,7 @@ public class DisplayBoard extends JFrame {
     public boolean inputHold = false;
 
     private String nextPiece;
+    private String holdPiece;
 
     // Constructor
     public DisplayBoard(Socket sock, Scanner netin, PrintWriter netout) {
@@ -56,12 +57,24 @@ public class DisplayBoard extends JFrame {
         // ===================== TOP PANEL =====================
         JPanel topPanel = new JPanel(new BorderLayout());
 
-        JLabel titleLabel = new JLabel("TETRIS", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 36));
-        titleLabel.setForeground(new Color(180, 0, 255));
+        JLabel titleLabel = new JLabel(
+            "<html>" +
+            "<span style='color:#f00000'>T</span>" +// cyan
+            "<span style='color:#f0a000'>E</span>" +// purple
+            "<span style='color:#f0f000'>T</span>" +// green
+            "<span style='color:#00f000'>R</span>" +// red
+            "<span style='color:#00f0f0'>I</span>" +// orange
+            "<span style='color:#00f0f0'>S</span>" +// yellow
+            "</html>",
+            SwingConstants.CENTER
+        );
+
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 64));
         titleLabel.setOpaque(true);
-        titleLabel.setBackground(Color.GRAY);
+        Color titleBackGroundColor = new Color(33, 64, 128);
+        titleLabel.setBackground(titleBackGroundColor);
         titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
 
         topPanel.add(titleLabel, BorderLayout.NORTH);
 
@@ -87,7 +100,7 @@ public class DisplayBoard extends JFrame {
         westPanel.setLayout(new BoxLayout(westPanel, BoxLayout.Y_AXIS));
 
         // tomt mellemrum mellem WEST-bokse og main (board)
-        westPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 15)); // 15px til højre
+        westPanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 15)); // 20px til venstre, 15px til højre
 
         // -------- TOP MINI (NEXT PIECE) --------
         JPanel topMiniWrapper = new JPanel(new BorderLayout());
@@ -134,14 +147,14 @@ public class DisplayBoard extends JFrame {
         bottomMiniWrapper.add(bottomMiniPanel, BorderLayout.CENTER);
 
         // -------- SIZE + ADD TO WEST --------
-        Dimension miniSize = new Dimension(120, 140); // lidt ekstra højde pga titel
+        Dimension miniSize = new Dimension(160, 160); // FIX: kvadratisk så 4x4 celler ikke bliver stretched
         topMiniWrapper.setPreferredSize(miniSize);
         topMiniWrapper.setMaximumSize(miniSize);
         bottomMiniWrapper.setPreferredSize(miniSize);
         bottomMiniWrapper.setMaximumSize(miniSize);
 
         westPanel.add(topMiniWrapper);
-        westPanel.add(Box.createVerticalStrut(30));
+        westPanel.add(Box.createVerticalGlue()); // NY: presser HOLD ned i bunden
         westPanel.add(bottomMiniWrapper);
 
         mainPanel.add(westPanel, BorderLayout.WEST);
@@ -150,6 +163,11 @@ public class DisplayBoard extends JFrame {
         boardPanel = new JPanel(new GridLayout(20, 10, 1, 1));
         boardPanel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
         boardCells = new JLabel[20][10];
+
+        Dimension boardSize = new Dimension(340, 680);
+        boardPanel.setPreferredSize(boardSize);
+        boardPanel.setMinimumSize(boardSize);
+        boardPanel.setMaximumSize(boardSize);
 
         for (int row = 0; row < 20; row++) {
             for (int col = 0; col < 10; col++) {
@@ -165,10 +183,13 @@ public class DisplayBoard extends JFrame {
         leaderboardArea.setText("Waiting for leaderboard...");
         leaderboardArea.setEditable(false);
         JScrollPane leaderboardScroll = new JScrollPane(leaderboardArea);
-        leaderboardScroll.setPreferredSize(new Dimension(200, 300));
+        leaderboardScroll.setPreferredSize(new Dimension(240, 520)); // FIX: mere naturlig sidebar
 
         // Add board to center, leaderboard to east
-        mainPanel.add(boardPanel, BorderLayout.CENTER);
+        JPanel boardWrapper = new JPanel(new GridBagLayout()); // NY: wrapper der må vokse
+        boardWrapper.add(boardPanel);                          // NY: boardet holdes fast og centreret
+        mainPanel.add(boardWrapper, BorderLayout.CENTER);      // NY: wrapperen er CENTER i stedet for boardet
+
         mainPanel.add(leaderboardScroll, BorderLayout.EAST);
 
         add(mainPanel, BorderLayout.CENTER);
@@ -181,7 +202,7 @@ public class DisplayBoard extends JFrame {
         add(bottomPanel, BorderLayout.SOUTH);
 
         // ===================== FRAME =====================
-        setSize(700, 600); // bredere så WEST + board + leaderboard kan være der
+        setSize(980, 940);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -317,7 +338,7 @@ public class DisplayBoard extends JFrame {
         welcomeWindow.setLayout(new BorderLayout());
         welcomeWindow.setSize(400, 200);
         welcomeWindow.setLocationRelativeTo(this);
-        
+
         // Create textlabels
         JLabel title = new JLabel("WELCOME TO TETRIS", SwingConstants.CENTER);
         JLabel name = new JLabel("ENTER YOUR NAME: ");
@@ -333,24 +354,24 @@ public class DisplayBoard extends JFrame {
                 startGame(playerName);
                 welcomeWindow.dispose(); //Close the welcome window
             } else {
-                JOptionPane.showMessageDialog(welcomeWindow, 
+                JOptionPane.showMessageDialog(welcomeWindow,
                     "Please enter your name!", "Error", JOptionPane.WARNING_MESSAGE);
             }
         });
-        
+
         //Add an actionlistener to the name field.
         nameField.addActionListener(e -> startButton.doClick());
 
         //Controls
         JLabel controlLabel = new JLabel(
             "<html>"
-        + "CONTROLS:<br>"
-        + "Movement: left and right arrows<br>"
-        + "Rotation: Upwards arrow<br>"
-        + "Soft drop: Downwards arrow<br>"
-        + "Hard drop: Space<br>"
-        + "Hold piece: Shift"
-        + "</html>"
+                + "CONTROLS:<br>"
+                + "Movement: left and right arrows<br>"
+                + "Rotation: Upwards arrow<br>"
+                + "Soft drop: Downwards arrow<br>"
+                + "Hard drop: Space<br>"
+                + "Hold piece: Shift"
+                + "</html>"
         );
 
         // Add the different fields to the window.
@@ -362,7 +383,7 @@ public class DisplayBoard extends JFrame {
         welcomeWindow.add(title, BorderLayout.NORTH);
         welcomeWindow.add(panel, BorderLayout.CENTER);
 
-        welcomeWindow.setVisible(true); 
+        welcomeWindow.setVisible(true);
     }
 
     private void startGame(String playerName) {
@@ -391,7 +412,7 @@ public class DisplayBoard extends JFrame {
             } catch (Exception e) {
                 System.err.println("Connection error: " + e.getMessage());
                 SwingUtilities.invokeLater(() ->
-                        statusField.setText("Game error: " + e.getMessage()));
+                    statusField.setText("Game error: " + e.getMessage()));
             }
 
         });
@@ -414,11 +435,18 @@ public class DisplayBoard extends JFrame {
             String pieceString = serverMessage.substring(serverMessage.lastIndexOf(" ") + 1);
             currentPieceType = Integer.parseInt(pieceString) - 1;
             System.out.println("Current piece set to: " + currentPieceType);
+
         } else if (serverMessage.startsWith("NEXT PIECE")) {
-            String nextPiece = serverMessage.substring(15);
+            nextPiece = serverMessage.substring(serverMessage.lastIndexOf(" ") + 1).trim();
+
         } else if (serverMessage.startsWith("HOLD PIECE")) {
-            String holdPiece = serverMessage.substring(15);
-            updateMiniPanel(nextPiece, holdPiece); 
+            holdPiece = serverMessage.substring(serverMessage.lastIndexOf(" ") + 1).trim();
+
+            int nextId = Integer.parseInt(nextPiece);
+            int holdId = Integer.parseInt(holdPiece);
+
+            updateMiniPanel(nextId, holdId);
+
         } else if (serverMessage.startsWith("SCORE")) {
             System.out.println("DEBUG: Score message detected: " + serverMessage);
             scoreField.setText(serverMessage);
@@ -470,23 +498,131 @@ public class DisplayBoard extends JFrame {
         }
     }
 
-    private void updateMiniPanel(int serverMessageNext, int serverMessageHold) {
+    private void updateMiniPanel(int nextID, int holdID) {
 
         if (nextCells == null || holdCells == null) {
             return;
         }
 
+        // Nulstil begge mini grids
         for (int r = 0; r < 4; r++) {
             for (int c = 0; c < 4; c++) {
                 nextCells[r][c].setBackground(Color.WHITE);
                 holdCells[r][c].setBackground(Color.WHITE);
             }
         }
+        int nextIDColor = nextID - 1;
+        int holdIDColor = holdID - 1;
 
+        if (nextID >= 1 && nextID <= 7) {
+            //longMask
+            if (nextID == 1) {
+                nextCells[1][0].setBackground(pieceColors[nextIDColor]);
+                nextCells[1][1].setBackground(pieceColors[nextIDColor]);
+                nextCells[1][2].setBackground(pieceColors[nextIDColor]);
+                nextCells[1][3].setBackground(pieceColors[nextIDColor]);
+            }
 
-        if (serverMessageHold == 1) {
-            
-        } 
+            //tMask
+            else if (nextID == 2) {
+                nextCells[1][1].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][0].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][1].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][2].setBackground(pieceColors[nextIDColor]);
+            }
+
+            //zigzag
+            else if (nextID == 3) {
+                nextCells[2][0].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][1].setBackground(pieceColors[nextIDColor]);
+                nextCells[1][1].setBackground(pieceColors[nextIDColor]);
+                nextCells[1][2].setBackground(pieceColors[nextIDColor]);
+            }
+
+            //zigzagR
+            else if (nextID == 4) {
+                nextCells[1][0].setBackground(pieceColors[nextIDColor]);
+                nextCells[1][1].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][1].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][2].setBackground(pieceColors[nextIDColor]);
+            }
+
+            //lLeft
+            else if (nextID == 5) {
+                nextCells[1][0].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][0].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][1].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][2].setBackground(pieceColors[nextIDColor]);
+            }
+
+            //lRight
+            else if (nextID == 6) {
+                nextCells[1][2].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][0].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][1].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][2].setBackground(pieceColors[nextIDColor]);
+            }
+
+            //square
+            else if (nextID == 7) {
+                nextCells[1][1].setBackground(pieceColors[nextIDColor]);
+                nextCells[1][2].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][1].setBackground(pieceColors[nextIDColor]);
+                nextCells[2][2].setBackground(pieceColors[nextIDColor]);
+            }
+        }
+
+        if (holdID >= 1 && holdID <= 7) {
+            //longMask
+            if (holdID == 1) {
+                holdCells[1][0].setBackground(pieceColors[holdIDColor]);
+                holdCells[1][1].setBackground(pieceColors[holdIDColor]);
+                holdCells[1][2].setBackground(pieceColors[holdIDColor]);
+                holdCells[1][3].setBackground(pieceColors[holdIDColor]);
+            }
+            //tMask
+            else if (holdID == 2) {
+                holdCells[1][1].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][0].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][1].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][2].setBackground(pieceColors[holdIDColor]);
+            }
+            //zigzagL
+            else if (holdID == 3) {
+                holdCells[2][0].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][1].setBackground(pieceColors[holdIDColor]);
+                holdCells[1][1].setBackground(pieceColors[holdIDColor]);
+                holdCells[1][2].setBackground(pieceColors[holdIDColor]);
+            }
+            //zigzagR
+            else if (holdID == 4) {
+                holdCells[1][0].setBackground(pieceColors[holdIDColor]);
+                holdCells[1][1].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][1].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][2].setBackground(pieceColors[holdIDColor]);
+            }
+            //lLeft
+            else if (holdID == 5) {
+                holdCells[1][0].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][0].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][1].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][2].setBackground(pieceColors[holdIDColor]);
+            }
+            //lRight
+            else if (holdID == 6) {
+                holdCells[1][2].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][0].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][1].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][2].setBackground(pieceColors[holdIDColor]);
+            }
+            //square
+            else if (holdID == 7) {
+                holdCells[1][1].setBackground(pieceColors[holdIDColor]);
+                holdCells[1][2].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][1].setBackground(pieceColors[holdIDColor]);
+                holdCells[2][2].setBackground(pieceColors[holdIDColor]);
+            }
+        }
     }
 
     private void initializePieceColors() {
