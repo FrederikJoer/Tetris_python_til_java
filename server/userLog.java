@@ -53,7 +53,7 @@ public class userLog {
             oldFile.delete();
             newFile.renameTo(oldFile);
 
-            userLog.Top10ToFile();
+            userLog.top10ToFile();
 
 
         } catch (IOException e) {
@@ -61,7 +61,7 @@ public class userLog {
         }
     }
 
-    public static void Top10ToFile() {
+    public static void top10ToFile() {
 
         String[] topNames = new String[10];
         int[] topScores = new int[10];
@@ -127,5 +127,31 @@ public class userLog {
             e.printStackTrace();
         }
     }
+
+    public String fetchHighScore(String playername) {
+        String highScore = "0";
+
+        try {
+            Scanner sc = new Scanner(new File("playersLog.txt")); // FIX: filnavn matcher resten af koden
+
+            while (sc.hasNextLine()) {
+                String line = sc.nextLine();
+
+                if (line.startsWith("Player ID: " + playername + ". Score: ")) {
+                    highScore = line.substring(line.lastIndexOf(" ") + 1);
+                    break;
+                }
+            }
+
+            sc.close();
+        } catch (Exception e) {
+        }
+
+        System.out.println(highScore);
+        return highScore;
+    }
+
+
+
 
 }
