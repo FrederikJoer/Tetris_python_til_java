@@ -12,11 +12,7 @@ public class DisplayBoard extends JFrame {
     private JTextField scoreField;
     private JTextField statusField;
     private JPanel boardPanel;
-    private JLabel[][] boardCells; 
-    private JPanel pieceCellPanel;
-    private JLabel[][] pieceCells;
-    private JPanel holdPiecePanel;
-    private JPanel nextPiecePanel;
+    private JLabel[][] boardCells;
     private JTextArea leaderboardArea;
     
     // Network components
@@ -28,7 +24,7 @@ public class DisplayBoard extends JFrame {
     private Color[] pieceColors;
     private int currentPieceType;
 
-    // Constructor. Sets layout
+    //Constructor. Sets layout
     public DisplayBoard(Socket sock, Scanner netin, PrintWriter netout) {
         this.sock = sock;
         this.netin = netin;
@@ -38,26 +34,13 @@ public class DisplayBoard extends JFrame {
 
         setupGUI();
     }
-    
+
     private void setupGUI() {
         //Create the window as a border-layout.
         setTitle("Tetris");
         setLayout(new BorderLayout());
 
-        setupTopPanel();
-        setupMainPanel();
-        setupBottomPanel();
-        
-        // Window properties
-        setSize(700, 700);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-        pack(); 
-        
-        setupKeyBindings();
-    }
-
-    private void setupTopPanel() {
+        // Create top panel with both score fields
         JPanel topPanel = new JPanel();
         highScoreField = new JTextField("Highscore: ", 15);
         highScoreField.setEditable(false);
@@ -68,118 +51,53 @@ public class DisplayBoard extends JFrame {
         topPanel.add(scoreField);
         
         add(topPanel, BorderLayout.NORTH);
-    }
-    
-    private void setupMainPanel() {
-        // Create main panel
-        JPanel mainPanel = new JPanel(new BorderLayout(0, 0));
-        
-        // Setup left side (Next and Hold)
-        mainPanel.add(createLeftPanel(), BorderLayout.WEST);
-        
-        // Setup center (Board)
-        mainPanel.add(setupBoard(), BorderLayout.CENTER);
-        
-        // Setup right side (Leaderboard)
-        mainPanel.add(createRightPanel(), BorderLayout.EAST);
-        
-        add(mainPanel, BorderLayout.CENTER);
-    }
-    
-    private JPanel createLeftPanel() {
-        
-        //Initialize panel for Hold-piece and Next-piece
-        JPanel piecesPanel = new JPanel();
-        piecesPanel.setLayout(new BoxLayout(piecesPanel, BoxLayout.Y_AXIS));  
-        piecesPanel.setPreferredSize(new Dimension(300, 400));
-        
-        // Create next piece panel  
-        nextPiecePanel = createMiniBoard();
-        JLabel nextPieceTitle = new JLabel("NEXT PIECE");
-        nextPiecePanel.add(nextPieceTitle, BorderLayout.NORTH);
-        piecesPanel.add(nextPiecePanel);
 
-        //Add space between the two panels
-        piecesPanel.add(Box.createVerticalStrut(100)); 
+        // Create main panel for board and highscore area
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 0)); // 10px horizontal gap
         
-        // Create hold piece panel
-        holdPiecePanel = createMiniBoard();
-        JLabel holdPieceTitle = new JLabel("HOLD PIECE");
-        holdPiecePanel.add(holdPieceTitle, BorderLayout.NORTH);
-        piecesPanel.add(holdPiecePanel);
-        
-        return piecesPanel;
-    } 
-
-    private JPanel createMiniBoard() {
-        //Create board panel with cells
-        JPanel container = new JPanel(new BorderLayout());
-
-        pieceCellPanel = new JPanel(new GridLayout(4, 2, 1, 1));
-        pieceCellPanel.setPreferredSize(new Dimension(80, 160));
-
-        //Create the cells
-        pieceCells = new JLabel[4][2];
-        for (int row = 0; row < 4; row++) {
-            for (int col = 0; col < 2; col++) {
-                pieceCells[row][col] = new JLabel();
-                pieceCells[row][col].setOpaque(true);
-                pieceCells[row][col].setBackground(Color.WHITE);
-                pieceCells[row][col].setPreferredSize(new Dimension(40, 40));
-                pieceCellPanel.add(pieceCells[row][col]);
-            }
-        }
-
-        container.add(pieceCellPanel, BorderLayout.CENTER);
-        return container;
-    }
- 
-    private JPanel setupBoard() {
         //Create board panel with cells
         boardPanel = new JPanel(new GridLayout(20, 10, 1, 1));
-        boardPanel.setPreferredSize(new Dimension(300, 400));
-        
-        //Create the 20x10 cells
+        boardPanel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
         boardCells = new JLabel[20][10];
-        for (int row = 0; row < 20; row++) {
-            for (int col = 0; col < 10; col++) {
+
+        //Create the 20 cells and add them to the board panel.
+        for (int row=0; row<20;row++) {
+            for (int col=0; col<10; col++) {
                 boardCells[row][col] = new JLabel();
                 boardCells[row][col].setOpaque(true);
                 boardCells[row][col].setBackground(Color.WHITE);
                 boardPanel.add(boardCells[row][col]);
             }
         }
-        return boardPanel;
-    }
-
-    private JPanel createRightPanel() {
-        //Create leaderboard panel
-        JPanel leaderboardPanel = new JPanel();
-        leaderboardPanel.setLayout(new BorderLayout());
         
-        // Add title to leaderboard
-        JLabel leaderboardTitle = new JLabel("LEADERBOARD");
-        leaderboardPanel.add(leaderboardTitle, BorderLayout.NORTH);
-        
-        // Create the leaderboard area
-        leaderboardArea = new JTextArea(12, 20);
+        //Create leaderboard - wider but shorter
+        leaderboardArea = new JTextArea(12, 20); 
         leaderboardArea.setText("Waiting for leaderboard");
         leaderboardArea.setEditable(false);
+        
         JScrollPane leaderboardScroll = new JScrollPane(leaderboardArea);
+        leaderboardScroll.setPreferredSize(new Dimension(200, 300)); 
         
-        leaderboardScroll.setPreferredSize(new Dimension(180, 340));
-        leaderboardPanel.add(leaderboardScroll, BorderLayout.CENTER);
+        // Add board to center, leaderboard to east
+        mainPanel.add(boardPanel, BorderLayout.CENTER);
+        mainPanel.add(leaderboardScroll, BorderLayout.EAST);
         
-        return leaderboardPanel;
-    }
+        add(mainPanel, BorderLayout.CENTER);
 
-    private void setupBottomPanel() {
         //Create status panel
         JPanel bottomPanel = new JPanel();
         statusField = new JTextField("Game Status: Active", 15);
         statusField.setEditable(false);
         bottomPanel.add(statusField);
         add(bottomPanel, BorderLayout.SOUTH);
+
+        // Set size etc.
+        setSize(500, 600); 
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        //Add key bindings
+        setupKeyBindings();
     }
 
     //Method to setup the keys to enable controls.
@@ -257,9 +175,8 @@ public class DisplayBoard extends JFrame {
         //Create welcome-window.
         JDialog welcomeWindow = new JDialog(this, "Welcome to TETRIS", true);
         welcomeWindow.setLayout(new BorderLayout());
-        welcomeWindow.setSize(400, 150);
+        welcomeWindow.setSize(400, 200);
         welcomeWindow.setLocationRelativeTo(this);
-        
         
         // Create textlabels
         JLabel title = new JLabel("WELCOME TO TETRIS", SwingConstants.CENTER);
@@ -284,10 +201,23 @@ public class DisplayBoard extends JFrame {
         //Add an actionlistener to the name field.
         nameField.addActionListener(e -> startButton.doClick());
 
+        //Controls
+        JLabel controlLabel = new JLabel(
+            "<html>"
+        + "CONTROLS:<br>"
+        + "Movement: left and right arrows<br>"
+        + "Rotation: Upwards arrow<br>"
+        + "Soft drop: Downwards arrow<br>"
+        + "Hard drop: Space<br>"
+        + "Hold piece: Shift"
+        + "</html>"
+        );
+
         // Add the different fields to the window.
         JPanel panel = new JPanel();
         panel.add(name);
         panel.add(nameField);
+        panel.add(controlLabel);
         panel.add(startButton);
         welcomeWindow.add(title, BorderLayout.NORTH);
         welcomeWindow.add(panel, BorderLayout.CENTER);
@@ -405,8 +335,8 @@ public class DisplayBoard extends JFrame {
         } else if (serverMessage.startsWith("LEADERBOARD")) {
             serverMessage = serverMessage.substring(12);
             serverMessage = serverMessage.replaceAll(";", "\n");
-            leaderboardArea.setText(serverMessage);
-            leaderboardArea.setCaretPosition(0); //Scroll to the top
+            leaderboardArea.setText("LEADERBOARD\n" + serverMessage);
+            leaderboardArea.setCaretPosition(0); 
         } else if(serverMessage.startsWith("LEVEL")) {
             statusField.setText(serverMessage);
         } else {    
