@@ -24,6 +24,8 @@ public class DisplayBoard extends JFrame {
     private Color[] pieceColors;
     private int currentPieceType;
 
+    private String nextPiece;
+
     //Constructor. Sets layout
     public DisplayBoard(Socket sock, Scanner netin, PrintWriter netout) {
         this.sock = sock;
@@ -321,6 +323,11 @@ public class DisplayBoard extends JFrame {
             String pieceString = serverMessage.substring(serverMessage.lastIndexOf(" ") + 1);
             currentPieceType = Integer.parseInt(pieceString) -1;
             System.out.println("Current piece set to: " + currentPieceType);
+        } else if (serverMessage.startsWith("NEXT PIECE")) {
+            String nextPiece = serverMessage.substring(15);
+        } else if (serverMessage.startsWith("HOLD PIECE")) {
+            String holdPiece = serverMessage.substring(15);
+            updateMiniPanel(nextPiece, holdPiece); 
         } else if (serverMessage.startsWith("SCORE")) {
             System.out.println("DEBUG: Score message detected: " + serverMessage);
             scoreField.setText(serverMessage);
