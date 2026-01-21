@@ -146,8 +146,6 @@ public class userLog {
             sc.close();
         } catch (Exception e) {
         }
-
-        System.out.println(highScore);
         return highScore;
     }
 

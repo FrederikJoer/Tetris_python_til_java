@@ -710,8 +710,8 @@ public class GameSession {
     public void sendGameInfo(String[] board, int score, int activePiece, int nextActivePieceId, int holdPieceId) {
         toClient("BOARD IS: " + String.join("", board));
         toClient("PIECE IS: " + activePiece);
-        toClient("NEXT PIECE IS: " + nextActivePieceId);
-        toClient("HOLD PIECE IS: " + holdPieceId);
+        toClient("NEXT PIECE IS: " + nextActivePieceId + activeMaskPiece.getMask(nextActivePieceId, 0));
+        toClient("HOLD PIECE IS: " + holdPieceId + activeMaskPiece.getMask(holdPieceId, 0));
         toClient("SCORE IS: " + score);
         toClient("HIGHSCORE: " + log.fetchHighScore(playerName));
         toClient("LEVEL " + level_int);
