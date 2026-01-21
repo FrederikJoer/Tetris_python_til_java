@@ -10,7 +10,18 @@ Player ID: d. Score: 0
 Player ID: tissemand13. Score: 0
 Player ID: 1. Score: 0
 Player ID: n. Score: 0
-Player ID: Sakarias. Score: 0
+Player ID: Sakarias. Score: 1000
 Player ID: asdasd. Score: 40
 Player ID: SADasd. Score: 0
 Player ID: asda. Score: 0
+Player ID: Tetris. Score: 0
+Player ID: ZAK da King. Score: 80
+Player ID: ZAKK. Score: 940
+Player ID: Zakk. Score: 0
+Player ID: ASDLKmasd. Score: 380
+Player ID: lkmlkm. Score: 720
+Player ID: lkmkl. Score: 0
+Player ID: SAlkasmd. Score: 40
+Player ID: Sakrias. Score: 0
+Player ID: Salaroas. Score: 0
+Player ID: Sak. Score: 0

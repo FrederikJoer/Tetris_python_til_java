@@ -71,9 +71,10 @@ public class DisplayBoard extends JFrame {
         }
         
         //Create leaderboard - wider but shorter
-        leaderboardArea = new JTextArea(12, 20); // 12 rows, 20 columns wide
-        leaderboardArea.setText("Waiting for leaderboard...");
+        leaderboardArea = new JTextArea(12, 20); 
+        leaderboardArea.setText("Waiting for leaderboard");
         leaderboardArea.setEditable(false);
+        
         JScrollPane leaderboardScroll = new JScrollPane(leaderboardArea);
         leaderboardScroll.setPreferredSize(new Dimension(200, 300)); 
         
@@ -114,6 +115,8 @@ public class DisplayBoard extends JFrame {
                     sendCommand("SOFT");
                 } else if (keyCode == KeyEvent.VK_SPACE) {
                     sendCommand("HARD");
+                } else if (keyCode == KeyEvent.VK_SHIFT) {
+                    sendCommand("HOLD");
                 }
             }           
         });
@@ -320,9 +323,11 @@ public class DisplayBoard extends JFrame {
             OpenGameOverWindow();
         // Set leaderboard 
         } else if (serverMessage.startsWith("LEADERBOARD")) {
+
+            serverMessage = serverMessage.substring(12);
             serverMessage = serverMessage.replaceAll(";", "\n");
-            leaderboardArea.setText(serverMessage);
-            leaderboardArea.setCaretPosition(0); //Scroll to the top
+            leaderboardArea.setText("LEADERBOARD\n" + serverMessage);
+            leaderboardArea.setCaretPosition(0); 
         } else if(serverMessage.startsWith("LEVEL")) {
             statusField.setText(serverMessage);
         } else {    
@@ -352,8 +357,6 @@ public class DisplayBoard extends JFrame {
             }
         }
     }
-
-
 
     private void initializePieceColors() {
         pieceColors = new Color[7];
