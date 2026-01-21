@@ -24,6 +24,14 @@ public class DisplayBoard extends JFrame {
     private Color[] pieceColors;
     private int currentPieceType;
 
+
+    public boolean inputLeft = false;
+    public boolean inputRigth = false;
+    public boolean inputRotate = false;
+    public boolean inputSoft = false;
+    public boolean inputHard = false;
+    public boolean inputHold = false;
+
     //Constructor. Sets layout
     public DisplayBoard(Socket sock, Scanner netin, PrintWriter netout) {
         this.sock = sock;
@@ -96,32 +104,88 @@ public class DisplayBoard extends JFrame {
         setLocationRelativeTo(null);
 
         //Add key bindings
-        setupKeyBindings();
+        newSetupKeyBindings();
     }
 
-    //Method to setup the keys to enable controls.
-    private void setupKeyBindings() {
+    private void newSetupKeyBindings() {
         addKeyListener(new KeyAdapter() {
+
             public void keyPressed(KeyEvent e) {
                 int keyCode = e.getKeyCode();
+
                 if (keyCode == KeyEvent.VK_LEFT) {
-                    sendCommand("LEFT");
+                    inputLeft = true;
                 } else if (keyCode == KeyEvent.VK_RIGHT) {
-                    sendCommand("RIGHT");
+                    inputRigth = true;
                 } else if (keyCode == KeyEvent.VK_UP) {
-                    sendCommand("ROTATE");
+                    inputRotate = true;
                 } else if (keyCode == KeyEvent.VK_DOWN) {
-                    sendCommand("SOFT");
+                    inputSoft = true;
                 } else if (keyCode == KeyEvent.VK_SPACE) {
-                    sendCommand("HARD");
+                    inputHard = true;
+                } else if (keyCode == KeyEvent.VK_SHIFT) {
+                    inputHold = true;
                 }
-            }           
+
+                inputSend(); // send hver gang
+            }
+
+            public void keyReleased(KeyEvent e) {
+                int keyCode = e.getKeyCode();
+
+                if (keyCode == KeyEvent.VK_LEFT) {
+                    inputLeft = false;
+                } else if (keyCode == KeyEvent.VK_RIGHT) {
+                    inputRigth = false;
+                } else if (keyCode == KeyEvent.VK_UP) {
+                    inputRotate = false;
+                } else if (keyCode == KeyEvent.VK_DOWN) {
+                    inputSoft = false;
+                } else if (keyCode == KeyEvent.VK_SPACE) {
+                    inputHard = false;
+                } else if (keyCode == KeyEvent.VK_SHIFT) {
+                    inputHold = false;
+                }
+
+                inputSend(); // send hver gang
+            }
         });
-        
-        // Make sure the frame can receive key events
+
         setFocusable(true);
         requestFocusInWindow();
     }
+
+    public void inputSend() {
+        String inputMSG = "";
+
+        if (inputRigth) {
+            inputMSG += "RIGHT + ";
+        }
+        if (inputLeft) {
+            inputMSG += "LEFT + ";
+        }
+        if (inputRotate) {
+            inputMSG += "ROTATE + ";
+        }
+        if (inputSoft) {
+            inputMSG += "SOFT + ";
+        }
+        if (inputHard) {
+            inputMSG += "HARD + ";
+        }
+        if (inputHold) {
+            inputMSG += "HOLD + ";
+        }
+
+        if (!inputMSG.equals("")) {
+            inputMSG = inputMSG.substring(0, inputMSG.length() - 3);
+        } else {
+            inputMSG = "NONE";
+        }
+
+        sendCommand(inputMSG);
+    }
+
 
     //Starts the GUI and connects to the server.
     public void sendCommand(String command) {
@@ -274,9 +338,10 @@ public class DisplayBoard extends JFrame {
             scoreField.setBackground(Color.GREEN);
         // Set leaderboard 
         } else if (serverMessage.startsWith("LEADERBOARD")) {
-            serverMessage = serverMessage.replaceAll(";", "\n");
-            leaderboardArea.setText(serverMessage);
-            leaderboardArea.setCaretPosition(0); //Scroll to the top
+        serverMessage = serverMessage.substring(12);
+        serverMessage = serverMessage.replaceAll(";", "\n");
+        leaderboardArea.setText("LEADERBOARD\n" + serverMessage);
+        leaderboardArea.setCaretPosition(0); 
         } else if(serverMessage.startsWith("LEVEL")) {
             statusField.setText(serverMessage);
         } else {    
@@ -300,6 +365,8 @@ public class DisplayBoard extends JFrame {
                     boardCells[row][col].setBackground(pieceColors[currentPieceType]);
                 } else if (cell >= '1' && cell <= '7') {
                     boardCells[row][col].setBackground(pieceColors[cell - '1']);
+                } else if (cell == '#')  {
+                    boardCells[row][col].setBackground(pieceColors[8]);
                 } else {
                     boardCells[row][col].setBackground(Color.WHITE);
                 }
@@ -310,15 +377,16 @@ public class DisplayBoard extends JFrame {
 
 
     private void initializePieceColors() {
-        pieceColors = new Color[7];
-
-        pieceColors[0] = new Color(0, 240, 240);
-        pieceColors[1] = Color.MAGENTA;
-        pieceColors[2] = Color.GREEN;
-        pieceColors[3] = Color.RED; 
-        pieceColors[4] = Color.BLUE;
-        pieceColors[5] = Color.ORANGE;       
-        pieceColors[6] = Color.YELLOW;           
+        pieceColors = new Color[9];
+        pieceColors[0] = new Color(0, 240, 240); //cyan
+        pieceColors[1] = new Color(160, 0, 240); //purple
+        pieceColors[2] = new Color(0, 240, 0); //green
+        pieceColors[3] = new Color(240, 0, 0); //red
+        pieceColors[4] = new Color(0, 0, 240); //blue
+        pieceColors[5] = new Color(240, 160, 0); //orange
+        pieceColors[6] = new Color(240, 240, 0); //yellow
+        pieceColors[8] = new Color (211,211,211); // ligthgrey for shadow
     }
+
 
 }

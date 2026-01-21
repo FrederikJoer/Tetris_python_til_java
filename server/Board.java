@@ -13,8 +13,7 @@ public class Board {
         if (gy >= 20) {
             return true;
         }
-        // ÆNDRET: tjek for 1..7 i stedet for "#"
-        if (!board[gy * 10 + gx].equals(".") && !board[gy * 10 + gx].equals("X")) {
+        if (!board[gy * 10 + gx].equals(".") && !board[gy * 10 + gx].equals("X") && !board[gy * 10 + gx].equals("#")) {
             return true;
         }
         return false;
@@ -24,8 +23,7 @@ public class Board {
         if (gx < 0 || gx >= 10) {
             return true;
         }
-        // ÆNDRET: tjek for 1..7 i stedet for "#"
-        if (!board[gy * 10 + gx].equals(".") && !board[gy * 10 + gx].equals("X")) {
+        if (!board[gy * 10 + gx].equals(".") && !board[gy * 10 + gx].equals("X") && !board[gy * 10 + gx].equals("#")) {
             return true;
         }
         else return false;
@@ -43,14 +41,11 @@ public class Board {
 
     public boolean checkGameOver(String[] board) {
         for (int x = 0; x < 10; x++) {
-            // ÆNDRET: tjek for 1..7 i stedet for "#"
-            if (!board[x].equals(".") && !board[x].equals("X")) {
+            if (!board[x].equals(".") && !board[x].equals("X") && !board[x].equals("#")) {
                 return true;
             }
         }
         return false;
     }
 
-    public void clear() { //Skal bruges til at nulstille board til restart game
-    }
 }
