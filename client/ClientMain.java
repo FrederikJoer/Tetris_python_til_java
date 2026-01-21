@@ -17,10 +17,10 @@ public class ClientMain {
             Scanner netin = new Scanner(sock.getInputStream());
             
             // Create the GUI window
-            DisplayBoard gui = new DisplayBoard(sock, netin, netout);
+            DisplayBoard GUI = new DisplayBoard(sock, netin, netout);
             
             // Start the GUI
-            gui.start();
+            GUI.start();
             
         } catch (Exception e) {
             System.err.println("Error when launching client: " + e.getMessage());

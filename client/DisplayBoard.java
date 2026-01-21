@@ -110,7 +110,7 @@ public class DisplayBoard extends JFrame {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 0));
 
         setupWestPanel(mainPanel); //Setup hold-piece and next-piece
-        setupBoardAndLeaderboard(mainPanel); //Setup board and leaderboard
+        SetupEastPanel(mainPanel); //Setup board and leaderboard
 
         add(mainPanel, BorderLayout.CENTER);
     }
@@ -183,7 +183,7 @@ public class DisplayBoard extends JFrame {
     }
 
     //Setup board and leaderboard
-    private void setupBoardAndLeaderboard(JPanel mainPanel) {
+    private void SetupEastPanel(JPanel mainPanel) {
         // ==== Board ====
         boardPanel = new JPanel(new GridLayout(20, 10, 1, 1));
         boardPanel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
@@ -251,7 +251,8 @@ public class DisplayBoard extends JFrame {
                     inputHold = true;
                 }
 
-                inputSend(); 
+                BuildCommand
+        (); 
             }
 
             //Set an input varible to false when its released
@@ -272,7 +273,8 @@ public class DisplayBoard extends JFrame {
                     inputHold = false;
                 }
 
-                inputSend(); 
+                BuildCommand
+        (); 
             }
         });
 
@@ -281,7 +283,7 @@ public class DisplayBoard extends JFrame {
     }
 
     //Method that store inputs in the inputMSG-variable, and send the inputs when no buttons are pushed anymore.
-    public void inputSend() {
+    public void BuildCommand() {
         String inputMSG = "";
 
         if (inputRight) {
@@ -535,10 +537,7 @@ public class DisplayBoard extends JFrame {
             System.out.println("DEBUG: Game over message detected"); 
             OpenGameOverWindow();
         } else if (serverMessage.startsWith("LEADERBOARD")) {
-            serverMessage = serverMessage.substring(12);
-            serverMessage = serverMessage.replaceAll(";", "\n");
-            leaderboardArea.setText("LEADERBOARD\n" + serverMessage);
-            leaderboardArea.setCaretPosition(0);
+            updateLeaderBoard(serverMessage);
 
         } else if (serverMessage.startsWith("LEVEL")) {
             statusField.setText(serverMessage);
@@ -546,6 +545,14 @@ public class DisplayBoard extends JFrame {
         } else {
             System.out.println("DEBUG: Unknown message format");
         }
+    }
+
+    //Updates leaderboard
+    private void updateLeaderBoard(String serverMessage) {
+        serverMessage = serverMessage.substring(12);
+        serverMessage = serverMessage.replaceAll(";", "\n");
+        leaderboardArea.setText("LEADERBOARD\n" + serverMessage);
+        leaderboardArea.setCaretPosition(0);
     }
 
     //Updates the board in the GUI
