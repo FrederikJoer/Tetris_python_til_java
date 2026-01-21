@@ -315,9 +315,9 @@ public class DisplayBoard extends JFrame {
         //Create welcome-window.
         JDialog welcomeWindow = new JDialog(this, "Welcome to TETRIS", true);
         welcomeWindow.setLayout(new BorderLayout());
-        welcomeWindow.setSize(400, 150);
+        welcomeWindow.setSize(400, 200);
         welcomeWindow.setLocationRelativeTo(this);
-
+        
         // Create textlabels
         JLabel title = new JLabel("WELCOME TO TETRIS", SwingConstants.CENTER);
         JLabel name = new JLabel("ENTER YOUR NAME: ");
@@ -333,23 +333,36 @@ public class DisplayBoard extends JFrame {
                 startGame(playerName);
                 welcomeWindow.dispose(); //Close the welcome window
             } else {
-                JOptionPane.showMessageDialog(welcomeWindow,
-                        "Please enter your name!", "Error", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(welcomeWindow, 
+                    "Please enter your name!", "Error", JOptionPane.WARNING_MESSAGE);
             }
         });
-
+        
         //Add an actionlistener to the name field.
         nameField.addActionListener(e -> startButton.doClick());
+
+        //Controls
+        JLabel controlLabel = new JLabel(
+            "<html>"
+        + "CONTROLS:<br>"
+        + "Movement: left and right arrows<br>"
+        + "Rotation: Upwards arrow<br>"
+        + "Soft drop: Downwards arrow<br>"
+        + "Hard drop: Space<br>"
+        + "Hold piece: Shift"
+        + "</html>"
+        );
 
         // Add the different fields to the window.
         JPanel panel = new JPanel();
         panel.add(name);
         panel.add(nameField);
+        panel.add(controlLabel);
         panel.add(startButton);
         welcomeWindow.add(title, BorderLayout.NORTH);
         welcomeWindow.add(panel, BorderLayout.CENTER);
 
-        welcomeWindow.setVisible(true);
+        welcomeWindow.setVisible(true); 
     }
 
     private void startGame(String playerName) {
