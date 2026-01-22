@@ -330,12 +330,12 @@ public class DisplayBoard extends JFrame {
     //Method to start the GUI and connect to the server
     public void start() {
         setVisible(true);
-        connectToServer();
+        readWelcomeMessage();
     }
     
 
     //Method for connecting to server.
-    private void connectToServer() {
+    private void readWelcomeMessage() {
 
         //Thread for connection, so that it doesnt block GUI.
         Thread connectionThread = new Thread(() -> {
