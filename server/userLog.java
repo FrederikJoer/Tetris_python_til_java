@@ -6,13 +6,14 @@ import java.util.Scanner;
 
 public class userLog {
 
+    //Metode til at opdatere userLog.txt
     public static void main(String name, int score) {
 
         boolean found = false;
 
         try {
             Scanner sc = new Scanner(new File("playersLog.txt"));
-            PrintWriter out = new PrintWriter(new FileWriter("temp.txt"));
+            PrintWriter out = new PrintWriter(new FileWriter("temp.txt")); //Laver ny midelertidigt
 
             while (sc.hasNextLine()) {
                 String line = sc.nextLine();
@@ -22,9 +23,7 @@ public class userLog {
                     found = true;
 
                     // Udtræk gammel score
-                    int oldScore = Integer.parseInt(
-                        line.substring(line.lastIndexOf(" ") + 1)
-                    );
+                    int oldScore = Integer.parseInt(line.substring(line.lastIndexOf(" ") + 1));
 
                     // Overwrite kun hvis ny score er højere
                     if (score > oldScore) {
@@ -39,7 +38,7 @@ public class userLog {
 
             sc.close();
 
-            // Hvis spilleren ikke fandtes → tilføj ny linje
+            // Hvis spilleren ikke fandtes, tilføjer en ny linje
             if (!found) {
                 out.println("Player ID: " + name + ". Score: " + score);
             }
@@ -61,6 +60,7 @@ public class userLog {
         }
     }
 
+    //Metode til at lave en top10 fil. Den bruger information for userlog.txt filen. Den finder de 10 højste score og sætter dem in
     public static void top10ToFile() {
 
         String[] topNames = new String[10];
@@ -128,11 +128,12 @@ public class userLog {
         }
     }
 
+    //Bruges til at finde highscore for en specifikt spiller. Den bruger det playername der bliver givet med og søger igennem userlog og finder spilelren
     public String fetchHighScore(String playername) {
         String highScore = "0";
 
         try {
-            Scanner sc = new Scanner(new File("playersLog.txt")); // FIX: filnavn matcher resten af koden
+            Scanner sc = new Scanner(new File("playersLog.txt"));
 
             while (sc.hasNextLine()) {
                 String line = sc.nextLine();
@@ -148,8 +149,4 @@ public class userLog {
         }
         return highScore;
     }
-
-
-
-
 }

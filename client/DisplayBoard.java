@@ -7,7 +7,12 @@ import javax.swing.*;
 
 public class DisplayBoard extends JFrame {
 
-    // Simple GUI components
+    // Network components
+    private Socket sock;
+    private Scanner netin;
+    private PrintWriter netout;
+
+    //GUI components
     private JTextField textField;
     private JTextField highScoreField;
     private JTextField scoreField;
@@ -15,29 +20,22 @@ public class DisplayBoard extends JFrame {
     private JPanel boardPanel;
     private JLabel[][] boardCells;
     private JTextArea leaderboardArea;
+    private JLabel[][] nextCells; 
+    private JLabel[][] holdCells;  
 
-    // Network components
-    private Socket sock;
-    private Scanner netin;
-    private PrintWriter netout;
-
-    // Declare variables for storing colors of the tetris-pieces.
-    private Color[] pieceColors;
-    private int currentPieceType;
-
-    // West side GUI (mini panels)
-    private JLabel[][] nextCells;   // 4x4 (NEXT PIECE)
-    private JLabel[][] holdCells;   // 4x4 (HOLD)
-
+    // Variables for handling hold-piece and next-piece functionality.
     public boolean inputLeft = false;
-    public boolean inputRigth = false;
+    public boolean inputRight = false;
     public boolean inputRotate = false;
     public boolean inputSoft = false;
     public boolean inputHard = false;
     public boolean inputHold = false;
-
     private String nextPiece;
     private String holdPiece;
+
+    // Variables for storing colors of the tetris-pieces.
+    private Color[] pieceColors;
+    private int currentPieceType;
 
     // Constructor
     public DisplayBoard(Socket sock, Scanner netin, PrintWriter netout) {
@@ -49,14 +47,29 @@ public class DisplayBoard extends JFrame {
         setupGUI();
     }
 
+    //Method for initializing the GUI
     private void setupGUI() {
-        //Create the window as a border-layout.
-        setTitle("Tetris");
-        setLayout(new BorderLayout());
+    //Create the window as a border-layout.
+    setTitle("Tetris");
+    setLayout(new BorderLayout());
 
-        // ===================== TOP PANEL =====================
+    setupTopPanel(); //Contain title, high-score and score field.
+    setupMainPanel(); //Contains next-piece, hold-piece, the tetris board itself, and leaderboard.
+    setupBottomPanel(); //Contains status panel.
+    
+    setSize(980, 940);//Set of the window
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    setLocationRelativeTo(null);
+
+    //Add key bindings
+    newSetupKeyBindings();
+}
+
+    //TETRIS-title, score and high-score
+    private void setupTopPanel() {
         JPanel topPanel = new JPanel(new BorderLayout());
 
+        //Tetris title with letters in different colors.
         JLabel titleLabel = new JLabel(
             "<html>" +
             "<span style='color:#f00000'>T</span>" +// cyan
@@ -69,40 +82,48 @@ public class DisplayBoard extends JFrame {
             SwingConstants.CENTER
         );
 
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 64));
         titleLabel.setOpaque(true);
         Color titleBackGroundColor = new Color(33, 64, 128);
         titleLabel.setBackground(titleBackGroundColor);
         titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-
         topPanel.add(titleLabel, BorderLayout.NORTH);
 
-        JPanel scorePanel = new JPanel();
 
-        highScoreField = new JTextField("High Score: ", 15);
-        highScoreField.setEditable(false);
-        scorePanel.add(highScoreField);
+        //Set the score and high-score panel
+        JPanel scorePanel = new JPanel();
 
         scoreField = new JTextField("Score: ", 15);
         scoreField.setEditable(false);
         scorePanel.add(scoreField);
 
+        highScoreField = new JTextField("High Score: ", 15);
+        highScoreField.setEditable(false);
+        scorePanel.add(highScoreField);
+
         topPanel.add(scorePanel, BorderLayout.SOUTH);
 
-        add(topPanel, BorderLayout.NORTH);
+        add(topPanel, BorderLayout.NORTH); //Add the top-panel to the BorderLayout
+    }
 
-        // ===================== MAIN PANEL =====================
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 0)); // 10px horizontal gap
+    // Contains the Tetris board, hold-piece and next-piece, and leaderboard
+    private void setupMainPanel() {
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 0));
 
-        // ===================== WEST PANEL (2x 4x4 GRIDS + TITLES) =====================
+        setupWestPanel(mainPanel); //Setup hold-piece and next-piece
+        SetupEastPanel(mainPanel); //Setup board and leaderboard
+
+        add(mainPanel, BorderLayout.CENTER);
+    }
+
+    //Setup hold-piece and next-piece
+    private void setupWestPanel(JPanel mainPanel) {
         JPanel westPanel = new JPanel();
         westPanel.setLayout(new BoxLayout(westPanel, BoxLayout.Y_AXIS));
 
-        // tomt mellemrum mellem WEST-bokse og main (board)
+        // Space on both sides of the west-panel.
         westPanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 15)); // 20px til venstre, 15px til højre
 
-        // -------- TOP MINI (NEXT PIECE) --------
+        // Next-piece panel
         JPanel topMiniWrapper = new JPanel(new BorderLayout());
 
         JLabel nextTitle = new JLabel("NEXT PIECE", SwingConstants.CENTER);
@@ -112,7 +133,7 @@ public class DisplayBoard extends JFrame {
         JPanel topMiniPanel = new JPanel(new GridLayout(4, 4, 1, 1));
         topMiniPanel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
 
-        nextCells = new JLabel[4][4]; // FIX: felt (ikke lokal variabel)
+        nextCells = new JLabel[4][4]; 
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 4; col++) {
                 nextCells[row][col] = new JLabel();
@@ -124,7 +145,7 @@ public class DisplayBoard extends JFrame {
 
         topMiniWrapper.add(topMiniPanel, BorderLayout.CENTER);
 
-        // -------- BOTTOM MINI (HOLD) --------
+        // Hold-piece panel
         JPanel bottomMiniWrapper = new JPanel(new BorderLayout());
 
         JLabel holdTitle = new JLabel("HOLD", SwingConstants.CENTER);
@@ -134,7 +155,7 @@ public class DisplayBoard extends JFrame {
         JPanel bottomMiniPanel = new JPanel(new GridLayout(4, 4, 1, 1));
         bottomMiniPanel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
 
-        holdCells = new JLabel[4][4]; // FIX: felt (ikke lokal variabel)
+        holdCells = new JLabel[4][4]; 
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 4; col++) {
                 holdCells[row][col] = new JLabel();
@@ -146,20 +167,24 @@ public class DisplayBoard extends JFrame {
 
         bottomMiniWrapper.add(bottomMiniPanel, BorderLayout.CENTER);
 
-        // -------- SIZE + ADD TO WEST --------
-        Dimension miniSize = new Dimension(160, 160); // FIX: kvadratisk så 4x4 celler ikke bliver stretched
+        // Set the size of the next-piece and hold-piece panels
+        Dimension miniSize = new Dimension(160, 160);
         topMiniWrapper.setPreferredSize(miniSize);
         topMiniWrapper.setMaximumSize(miniSize);
         bottomMiniWrapper.setPreferredSize(miniSize);
         bottomMiniWrapper.setMaximumSize(miniSize);
 
+        //add next-piece and hold-piece to the west-panel, and then the main panel.
         westPanel.add(topMiniWrapper);
-        westPanel.add(Box.createVerticalGlue()); // NY: presser HOLD ned i bunden
+        westPanel.add(Box.createVerticalGlue()); 
         westPanel.add(bottomMiniWrapper);
 
         mainPanel.add(westPanel, BorderLayout.WEST);
+    }
 
-        // ===================== BOARD =====================
+    //Setup board and leaderboard
+    private void SetupEastPanel(JPanel mainPanel) {
+        // ==== Board ====
         boardPanel = new JPanel(new GridLayout(20, 10, 1, 1));
         boardPanel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
         boardCells = new JLabel[20][10];
@@ -178,48 +203,44 @@ public class DisplayBoard extends JFrame {
             }
         }
 
-        // ===================== LEADERBOARD =====================
+        // ==== Leaderboard ====
         leaderboardArea = new JTextArea(12, 20);
         leaderboardArea.setText("Waiting for leaderboard...");
         leaderboardArea.setEditable(false);
         JScrollPane leaderboardScroll = new JScrollPane(leaderboardArea);
-        leaderboardScroll.setPreferredSize(new Dimension(240, 520)); // FIX: mere naturlig sidebar
+        leaderboardScroll.setPreferredSize(new Dimension(240, 520)); 
 
         // Add board to center, leaderboard to east
-        JPanel boardWrapper = new JPanel(new GridBagLayout()); // NY: wrapper der må vokse
-        boardWrapper.add(boardPanel);                          // NY: boardet holdes fast og centreret
-        mainPanel.add(boardWrapper, BorderLayout.CENTER);      // NY: wrapperen er CENTER i stedet for boardet
+        JPanel boardWrapper = new JPanel(new GridBagLayout()); 
+        boardWrapper.add(boardPanel);                          
+        mainPanel.add(boardWrapper, BorderLayout.CENTER);      
 
         mainPanel.add(leaderboardScroll, BorderLayout.EAST);
+    }
 
-        add(mainPanel, BorderLayout.CENTER);
-
+    //Setup game status field
+    private void setupBottomPanel() {
         // ===================== BOTTOM =====================
         JPanel bottomPanel = new JPanel();
         statusField = new JTextField("Game Status: Active", 15);
         statusField.setEditable(false);
         bottomPanel.add(statusField);
         add(bottomPanel, BorderLayout.SOUTH);
-
-        // ===================== FRAME =====================
-        setSize(980, 940);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-
-        //Add key bindings
-        newSetupKeyBindings();
     }
 
+
+    //Setup Key bindings for controls
     private void newSetupKeyBindings() {
         addKeyListener(new KeyAdapter() {
 
+            //Set an input varible to true when its pressed
             public void keyPressed(KeyEvent e) {
                 int keyCode = e.getKeyCode();
 
                 if (keyCode == KeyEvent.VK_LEFT) {
                     inputLeft = true;
                 } else if (keyCode == KeyEvent.VK_RIGHT) {
-                    inputRigth = true;
+                    inputRight = true;
                 } else if (keyCode == KeyEvent.VK_UP) {
                     inputRotate = true;
                 } else if (keyCode == KeyEvent.VK_DOWN) {
@@ -230,16 +251,18 @@ public class DisplayBoard extends JFrame {
                     inputHold = true;
                 }
 
-                inputSend(); // send hver gang
+                BuildCommand
+        (); 
             }
 
+            //Set an input varible to false when its released
             public void keyReleased(KeyEvent e) {
                 int keyCode = e.getKeyCode();
 
                 if (keyCode == KeyEvent.VK_LEFT) {
                     inputLeft = false;
                 } else if (keyCode == KeyEvent.VK_RIGHT) {
-                    inputRigth = false;
+                    inputRight = false;
                 } else if (keyCode == KeyEvent.VK_UP) {
                     inputRotate = false;
                 } else if (keyCode == KeyEvent.VK_DOWN) {
@@ -250,7 +273,8 @@ public class DisplayBoard extends JFrame {
                     inputHold = false;
                 }
 
-                inputSend(); // send hver gang
+                BuildCommand
+        (); 
             }
         });
 
@@ -258,10 +282,11 @@ public class DisplayBoard extends JFrame {
         requestFocusInWindow();
     }
 
-    public void inputSend() {
+    //Method that store inputs in the inputMSG-variable, and send the inputs when no buttons are pushed anymore.
+    public void BuildCommand() {
         String inputMSG = "";
 
-        if (inputRigth) {
+        if (inputRight) {
             inputMSG += "RIGHT + ";
         }
         if (inputLeft) {
@@ -289,7 +314,7 @@ public class DisplayBoard extends JFrame {
         sendCommand(inputMSG);
     }
 
-    //Starts the GUI and connects to the server.
+    //Method for sending a move to the server.
     public void sendCommand(String command) {
         try {
             if (netout != null) {
@@ -302,13 +327,15 @@ public class DisplayBoard extends JFrame {
         }
     }
 
+    //Method to start the GUI and connect to the server
     public void start() {
         setVisible(true);
-        connectToServer();
+        readWelcomeMessage();
     }
+    
 
     //Method for connecting to server.
-    private void connectToServer() {
+    private void readWelcomeMessage() {
 
         //Thread for connection, so that it doesnt block GUI.
         Thread connectionThread = new Thread(() -> {
@@ -332,6 +359,7 @@ public class DisplayBoard extends JFrame {
         connectionThread.start(); //Start thread
     }
 
+    //Method to show the welcome-window when first initializing the game.
     private void showWelcome() {
         //Create welcome-window.
         JDialog welcomeWindow = new JDialog(this, "Welcome to TETRIS", true);
@@ -386,6 +414,7 @@ public class DisplayBoard extends JFrame {
         welcomeWindow.setVisible(true);
     }
 
+    //Method to open a game-over window after the player loses. 
     private void OpenGameOverWindow() {
         JDialog gameOverWindow = new JDialog(this, "GAME OVER", true);
         gameOverWindow.setLayout(new GridLayout(4, 1, 10, 10));
@@ -395,6 +424,7 @@ public class DisplayBoard extends JFrame {
         JLabel title = new JLabel("GAME OVER", SwingConstants.CENTER);
         JLabel scoreLabel = new JLabel(scoreField.getText(), SwingConstants.CENTER);
 
+        //Create a play-again and exit button.
         JPanel buttonPanel = new JPanel(new FlowLayout());
         JButton playAgain = new JButton("Play Again");
         JButton exit = new JButton("Exit");
@@ -419,6 +449,7 @@ public class DisplayBoard extends JFrame {
         gameOverWindow.setVisible(true);
     }
 
+    //Method to initialize a new game, after game-over.
     private void restartGame() {
         scoreField.setText(" ");
         
@@ -433,6 +464,7 @@ public class DisplayBoard extends JFrame {
 
     }
 
+    // Method to start a game and then listen to information from the server.
     private void startGame(String playerName) {
         //Thread for the game.
         Thread gameThread = new Thread(() -> {
@@ -469,16 +501,16 @@ public class DisplayBoard extends JFrame {
 
     //Method to process message from server
     private void processMessage(String serverMessage) {
-        serverMessage = serverMessage.trim(); // så " PIECE..." også matches som "PIECE..."
+        serverMessage = serverMessage.trim(); 
         System.out.println("DEBUG: Processing message: " + serverMessage);
 
-        // To set the Board in the GUI.
+        // To set the Board in the GUI, depending on the message from the server.
         if (serverMessage.startsWith("BOARD")) {
             System.out.println("DEBUG: Board message detected");
             updateBoard(serverMessage);
 
         } else if (serverMessage.startsWith("PIECE")) {
-            System.err.println("Piece detected: " + serverMessage);
+            System.out.println("Piece detected: " + serverMessage);
             String pieceString = serverMessage.substring(serverMessage.lastIndexOf(" ") + 1);
             currentPieceType = Integer.parseInt(pieceString) - 1;
             System.out.println("Current piece set to: " + currentPieceType);
@@ -493,7 +525,7 @@ public class DisplayBoard extends JFrame {
             int holdId = Integer.parseInt(holdPiece);
 
             updateMiniPanel(nextId, holdId);
-
+        
         } else if (serverMessage.startsWith("SCORE")) {
             System.out.println("DEBUG: Score message detected: " + serverMessage);
             scoreField.setText(serverMessage);
@@ -505,10 +537,7 @@ public class DisplayBoard extends JFrame {
             System.out.println("DEBUG: Game over message detected"); 
             OpenGameOverWindow();
         } else if (serverMessage.startsWith("LEADERBOARD")) {
-            serverMessage = serverMessage.substring(12);
-            serverMessage = serverMessage.replaceAll(";", "\n");
-            leaderboardArea.setText("LEADERBOARD\n" + serverMessage);
-            leaderboardArea.setCaretPosition(0);
+            updateLeaderBoard(serverMessage);
 
         } else if (serverMessage.startsWith("LEVEL")) {
             statusField.setText(serverMessage);
@@ -516,6 +545,14 @@ public class DisplayBoard extends JFrame {
         } else {
             System.out.println("DEBUG: Unknown message format");
         }
+    }
+
+    //Updates leaderboard
+    private void updateLeaderBoard(String serverMessage) {
+        serverMessage = serverMessage.substring(12);
+        serverMessage = serverMessage.replaceAll(";", "\n");
+        leaderboardArea.setText("LEADERBOARD\n" + serverMessage);
+        leaderboardArea.setCaretPosition(0);
     }
 
     //Updates the board in the GUI
@@ -543,22 +580,26 @@ public class DisplayBoard extends JFrame {
         }
     }
 
+    //Method to update next-piece and hold-piece.
     private void updateMiniPanel(int nextID, int holdID) {
 
         if (nextCells == null || holdCells == null) {
             return;
         }
 
-        // Nulstil begge mini grids
+        // Reset both grids.
         for (int r = 0; r < 4; r++) {
             for (int c = 0; c < 4; c++) {
                 nextCells[r][c].setBackground(Color.WHITE);
                 holdCells[r][c].setBackground(Color.WHITE);
             }
         }
+
+        //Fix: the color-ID of the pieces must match the ID of the piece itself, in terms of what index is used.
         int nextIDColor = nextID - 1;
         int holdIDColor = holdID - 1;
 
+        //Sets the next-piece based on the piece-ID
         if (nextID >= 1 && nextID <= 7) {
             //longMask
             if (nextID == 1) {
@@ -617,6 +658,7 @@ public class DisplayBoard extends JFrame {
             }
         }
 
+        //Sets the hold-piece based on the piece-ID
         if (holdID >= 1 && holdID <= 7) {
             //longMask
             if (holdID == 1) {
@@ -670,6 +712,7 @@ public class DisplayBoard extends JFrame {
         }
     }
 
+    // Method to initialize the colors of the tetris-pieces.
     private void initializePieceColors() {
         pieceColors = new Color[9];
         pieceColors[0] = new Color(0, 240, 240);   // cyan
@@ -679,6 +722,6 @@ public class DisplayBoard extends JFrame {
         pieceColors[4] = new Color(0, 0, 240);     // blue
         pieceColors[5] = new Color(240, 160, 0);   // orange
         pieceColors[6] = new Color(240, 240, 0);   // yellow
-        pieceColors[8] = new Color(211, 211, 211); // lightgrey for shadow
+        pieceColors[8] = new Color(211, 211, 211); // lightgrey (for shadow)
     }
 }

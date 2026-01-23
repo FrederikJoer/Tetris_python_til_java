@@ -23,12 +23,12 @@ public class GameSession {
     public int pieceX = 3; //spawn position i x retning
     public int pieceY = 0; //spawn position i y retning
 
-    public int gravityTick = 500;
+    public int gravityTick = 1000;
     public int movementTick = 50;
 
     public int score = 0;
 
-    private int normalGravityTick = 500; // var final
+    private int normalGravityTick = 1000; // var final
     private final int softGravityTick = 50;
     private int softFramesLeft = 0;
     private int skipMovementTicks = 0;
@@ -68,7 +68,7 @@ public class GameSession {
             e.printStackTrace();
         }
     }
-
+    //Handshake
     public void run() {
         toClient("WELCOME TO TETRIS");
 
@@ -112,7 +112,7 @@ public class GameSession {
             toClient(getLeaderboard());
         }
 
-        intiazieGame();
+        intiazieGame(); //Sætter spillet op
     }
 
 
@@ -131,8 +131,10 @@ public class GameSession {
             pieceY = 0;
             rotationIndex = 0;
 
+            //Lavet et baord
             board = gameBoard.makeBoard();
 
+            //Vælger en ny brik
             activePieceId = activeMaskPiece.randomNumber();
             nextActivePieceId = activeMaskPiece.randomNumber();
 
@@ -147,6 +149,8 @@ public class GameSession {
                 setCell(gx, gy, "X");
             }
 
+
+            //Første simpel update bliver sendt til klient
             toClient("BOARD IS: " + String.join("", board));
             toClient("LEVEL " + level_int);
         }
@@ -154,13 +158,14 @@ public class GameSession {
         if (!threadsStarted) { //Hvis allerede en aktiv Thread fra tidligere spil skal den bruge den så brugeren ikke starte en ny for hver restart game
             threadsStarted = true;
 
-            startInputThread();  //starter tråd til at lytte til client uden at blokere de to tick-threads
+            inputThread();  //starter tråd til at lytte til client uden at blokere de to tick-threads
             startGravityThread();   // starter tick for håndtering af gravity (y-retning)
             startMovementThread();  // starter tick for håndtering af movement (x-retningen og rotation)
         }    
     }
 
 
+    //Tråd til at handåtere gravity
     private void startGravityThread() {
         new Thread(() -> {
             while (true) { 
@@ -168,16 +173,19 @@ public class GameSession {
 
                     if (!activeGame) {         
                         Thread.sleep(500);     
-                        continue;             
+                        continue;
                     }                          
 
                     synchronized (boardLock) {
                         boolean collisionDown = false;
 
+
+                        //Tjekker for colision i et felt under
                         for (int[] cord : mask) {
                             int gx = pieceX + cord[0];
                             int gy = (pieceY + 1) + cord[1];
 
+                            //Hvis collision giver gameover
                             if (gameBoard.checkGameOver(board)) {
                                 activeGame = false;
                                 toClient("GAMEOVER");
@@ -242,7 +250,8 @@ public class GameSession {
                                     setCell(gx, gy, "X");
                                 }
                             }
-
+                            
+                            //Sikre at den hurtigste tick sender gameinfo til klient så det ikke bliver hakkende
                             if (gravityTick < movementTick) {
                                 sendGameInfo(board, score, activePieceId, nextActivePieceId, holdPieceId); //Sender alt gameinfo til Client
                             }
@@ -274,7 +283,8 @@ public class GameSession {
                     lastInput = null;
 
                     synchronized (boardLock) {
-
+                        
+                        //Holder gravity i soft drop i to frames mere for at undgå hakkende spil
                         if (softFramesLeft > 0) {
                             softFramesLeft--;
                             if (softFramesLeft == 0) {
@@ -283,12 +293,14 @@ public class GameSession {
                             }
                         }
 
+                        //Skipper ticks hvis der er blevet lavet harddrop
                         if (skipMovementTicks > 0) {
                             skipMovementTicks--;
                             continue;
                         }
 
 
+                        //Finder koordinat for skyggen brikken
                         boolean collisionDownShadow = false;
                         int shadowY = pieceY;
 
@@ -315,6 +327,7 @@ public class GameSession {
                             }
                         }
 
+                        //Tegner skygge brikken
                         for (int[] cord : mask) {
                             int gx = pieceX + cord[0];
                             int gy = shadowY + cord[1];
@@ -326,6 +339,7 @@ public class GameSession {
                         }
 
 
+                        //Ændringerne af inputsene
                         if (input != null) {
 
                             boolean soft = input.contains("SOFT");
@@ -335,6 +349,7 @@ public class GameSession {
                             boolean hard = input.contains("HARD");
                             boolean hold = input.contains("HOLD");
 
+                            //Input hold
                             if (hold && !holdToCollision) {
                                     int currentHoldPieceId = holdPieceId;
                                     int currentActivePieceId = activePieceId;
@@ -342,7 +357,7 @@ public class GameSession {
 
                                     deleteOldPosition();
 
-
+                                //Opdatere holdID og vælger næste piece med ID
                                 if (holdPieceId == 0) {
                                     holdPieceId = currentActivePieceId;
                                     activePieceId = nextActivePieceId;
@@ -373,6 +388,7 @@ public class GameSession {
                                 }
                             }
 
+                            //Input harddrop
                             if (hard) {
                                 boolean collisionDownHard = false;
 
@@ -409,34 +425,42 @@ public class GameSession {
                                         }
                                     }
                                 }
-
+        
                                 if (activeGame) {
 
                                     board = gameBoard.lockBoard(board, activePieceId); // lock først
                                     board = fullrow(board); // fullrow sætter rowsClearedLast
 
+                                    //Tjekker for full rows
                                     if (rowsClearedLast > 0) {
                                         totalRowsCleared = totalRowsCleared + rowsClearedLast;
 
+                                        //Opdatere level
                                         int oldLevel = level_int;
                                         level_int = level(totalRowsCleared);
 
+                                        //Opdatere gravity som afhænger af level
                                         if (level_int != oldLevel) {
                                             gravityTickSet("SET");
                                         }
 
+                                        //Opdatere score samt sender info til klassen userLog som kan opdatere log filerne
                                         score += scoreForRows(rowsClearedLast);
                                         log.main(playerName, score);
                                     }
 
+
+                                    //Vælger næste brik
                                     activePieceId = nextActivePieceId;
                                     nextActivePieceId = activeMaskPiece.randomNumber();
 
+                                    //Nulstiller rotation og position
                                     rotationIndex = 0;
 
                                     pieceX = 3;
                                     pieceY = 0;
 
+                                    //Finder næste mask
                                     mask = activeMaskPiece.getMask(activePieceId, rotationIndex);
 
                                     holdToCollision = false;
@@ -451,10 +475,11 @@ public class GameSession {
                                 skipMovementTicks = 1; // så du ikke laver mere movement i samme tick
                             }
 
-
+                            //Input softdrop
                             if (soft) {
                                 boolean collisionDownSoftInstant = false;
 
+                                //Går altid en ned med det samme så det ikke er hakkende og så tager gravity over
                                 for (int[] cord : mask) {
                                     int gx = pieceX + cord[0];
                                     int gy = (pieceY + 1) + cord[1];
@@ -476,15 +501,17 @@ public class GameSession {
                                     }
                                 }
 
-                                gravityTickSet("SOFT");
+                                gravityTickSet("SOFT"); //Gravity tager over
                             }
 
 
+                            //Input rotation
                             if (roate) {
-                                int nextRotationIndex = (rotationIndex + 1) % 4;
+                                int nextRotationIndex = (rotationIndex + 1) % 4; //Wrapper rotationindexed
 
-                                int[][] nextMask = activeMaskPiece.getMask(activePieceId, nextRotationIndex);
+                                int[][] nextMask = activeMaskPiece.getMask(activePieceId, nextRotationIndex); //Finder den nye mask med det nye roationindex
 
+                                //Tjekker om brikken kan rotere
                                 boolean canRotate = true;
 
                                 for (int[] cord : nextMask) {
@@ -497,6 +524,7 @@ public class GameSession {
                                     }
                                 }
 
+                                //Hvis den kan rotere slet den gamle piece og tegn det nye
                                 if (canRotate) {
                                     deleteOldPosition();
 
@@ -511,6 +539,7 @@ public class GameSession {
                                 }
                             }
 
+                            //Input left. Tjekker om colision med wall og piece. Hvis god tegner den nye position og sletter den gamle
                             if (left && !rigth) {
                                 boolean collisionLeft = false;
 
@@ -535,6 +564,7 @@ public class GameSession {
                                 }
                             }
 
+                            //Input rigth. Tjekker om colision med wall og piece. Hvis god tegner den nye position og sletter den gamle
                             if (rigth && !left) {
                                 boolean collisionRight = false;
 
@@ -560,6 +590,7 @@ public class GameSession {
                             }
                         }
 
+                        //Sørger for at den hurstigste tick sender gameinfo
                         if (gravityTick >= movementTick) {
                             sendGameInfo(board, score, activePieceId, nextActivePieceId, holdPieceId);
                         }
@@ -575,24 +606,25 @@ public class GameSession {
         }).start();
     }
 
-    private void startInputThread() {
+    //Tråd for input fra client. Bruges til at den ikke blokere for gamesession
+    private void inputThread() {
         new Thread(() -> {
             while (true) {
                 String input = fromClient();
                 if (input == null) {
-                    System.out.println("Client disconnected...\r\nName: " + playerName + "\r\nSock: " + sock);
+                    System.out.println("Client disconnected...\r\nName: " + playerName + "\r\nSock: " + sock); //Printer i terminalen hvis klient leaver
                     activeGame = false;
                     closeQuiet();
                     break;
                 }
 
-                if (input.equals("RESTART")) {           
+                if (input.equals("RESTART")) {   //Holder øje med restart         
                     activeGame = true;                   
                     intiazieGame();                       
                     continue; 
                 }                                         
 
-                lastInput = input;
+                lastInput = input; 
             }
         }).start();
     }
@@ -604,11 +636,12 @@ public class GameSession {
         }
     }
 
-    //metode til at sette en cell for en brik
+    //metode til at sette en cell for en brik med en bestemt værdi. Enten 1..7 eller #
     private void setCell(int x, int y, String value) {
         board[y * 10 + x] = value;
     }
 
+    //Metode til at opdatere gravity
     private void gravityTickSet(String reason) {
         if (reason.equals("SOFT")) {
             gravityTick = softGravityTick; // 50
@@ -631,11 +664,12 @@ public class GameSession {
         }
     }
 
+    //Metode til at opdatere level. Stiger hver tiende række
     private int level(int totalRowsCleared) {
         return totalRowsCleared / 10;
     }
 
-    // score tabel (1..5 rækker)
+    // score tabel (1...5 rækker)
     private int scoreForRows(int rows) {
         if (rows == 1) {
             return 40;
@@ -649,7 +683,7 @@ public class GameSession {
         return 0;
     }
 
-    // fullrow returnerer board + sætter rowsClearedLast
+    // Metode tjekke om der er en fuld række returnerer board + sætter rowsClearedLast
     private String[] fullrow(String[] board) {
         int width = 10;
         int height = 20;
@@ -660,7 +694,8 @@ public class GameSession {
         boolean foundFullRow = true;
 
         int rowsCleared = 0;
-
+        
+        //Tjekekr alle rækker
         while (foundFullRow) {
             foundFullRow = false;
 
@@ -675,6 +710,7 @@ public class GameSession {
                     }
                 }
 
+                //Hvis det er en fuld række vil række blive skubbet ned fra oven
                 if (RowFull) {
                     foundFullRow = true;
                     foundAnyFullRow = true;
@@ -707,6 +743,7 @@ public class GameSession {
         return currentBoard;
     }
 
+    //Metode til at sende alt gameinfo
     public void sendGameInfo(String[] board, int score, int activePiece, int nextActivePieceId, int holdPieceId) {
         toClient("BOARD IS: " + String.join("", board));
         toClient("PIECE IS: " + activePiece);
@@ -715,11 +752,9 @@ public class GameSession {
         toClient("SCORE IS: " + score);
         toClient("HIGHSCORE: " + log.fetchHighScore(playerName));
         toClient("LEVEL " + level_int);
-
-        System.out.println(gravityTick);
     }
 
-    //Metode til at sende til clienten
+    //Metode til at sende til clienten i handshake
     private void toClient(String msg) {
         synchronized (netout) {
             System.out.println("to client: " + msg);
@@ -749,6 +784,7 @@ public class GameSession {
         }
     }
 
+    //Metoder til at fecthe  leaderboard fra top10.txt
     private String getLeaderboard() {
         StringBuilder leaderboard = new StringBuilder();
         leaderboard.append("LEADERBOARD:");
@@ -774,6 +810,7 @@ public class GameSession {
         return leaderboard.toString();
     }
 
+    //Metode til at lukke socket korrekt
     private void closeQuiet() {
         try {
             sock.close();
@@ -781,6 +818,3 @@ public class GameSession {
         }
     }
 }
-
-
-//Mangler: ved hard drop skal men ikke kunne lave movements. Shadow med ###
