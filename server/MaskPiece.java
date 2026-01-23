@@ -2,12 +2,14 @@ import java.util.Random;
 
 public class MaskPiece {
 
+    //Metode til at væge en tilfældig nummer
     public int randomNumber() {
         Random random = new Random();
         int tal = random.nextInt(7) + 1;
         return tal;
     }
 
+    //Metode til at vælge næste pieceMask
     public int[][] chooseNextPiece() {
         int randomNumber = randomNumber();
         if (randomNumber == 1) {
@@ -35,6 +37,7 @@ public class MaskPiece {
     }
 
 
+    //Metode til at vælge en bestemt mask
     public int[][] getMask(int pieceId, int rotationIndex) {
         if (pieceId == 1) {
             return longMask(rotationIndex);
@@ -60,6 +63,7 @@ public class MaskPiece {
         return null;
     }
 
+    //Under her findes der en mask hvor alle brikkere. De returene en mask som afhænger af rotationindex
     public int[][] longMask(int rotationIndex) {
         if (rotationIndex == 0) {
             return new int[][] { {0,0}, {1,0}, {2,0}, {3,0} }; // {x,y}

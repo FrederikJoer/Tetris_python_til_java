@@ -19,3 +19,7 @@ Player ID: fm'. Score: 0
 Player ID: t. Score: 5660
 Player ID: v. Score: 0
 Player ID: g. Score: 4860
+Player ID: s. Score: 0
+Player ID: q. Score: 0
+Player ID: test. Score: 0
+Player ID: Sakarias. Score: 1060
